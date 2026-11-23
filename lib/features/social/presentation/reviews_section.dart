@@ -126,8 +126,10 @@ class ReviewsSection extends ConsumerWidget {
     if (repository == null) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
+      final social = ref.read(socialActivityProvider);
       if (result.delete) {
         await repository.deleteReview(book.bookKey);
+        await social.reviewDeleted(book);
         return;
       }
       await repository.saveReview(
@@ -138,9 +140,7 @@ class ReviewsSection extends ConsumerWidget {
         rating: result.rating,
         text: result.text,
       );
-      if (existing == null) {
-        await ref.read(socialActivityProvider).reviewed(book, result.rating);
-      }
+      await social.reviewSaved(book, result.rating, result.text);
     } catch (error) {
       messenger.showSnackBar(
         SnackBar(content: Text(socialErrorMessage(error))),

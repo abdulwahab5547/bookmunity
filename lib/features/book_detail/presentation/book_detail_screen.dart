@@ -148,6 +148,8 @@ class BookDetailScreen extends ConsumerWidget {
       await social.bookFinished(current);
     } else if (shelf == 'currentlyReading' && current.shelf == 'wantToRead') {
       await social.bookStarted(current);
+    } else if (shelf == 'wantToRead') {
+      await social.bookShelved(current);
     }
   }
 

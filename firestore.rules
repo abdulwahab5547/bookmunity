@@ -68,6 +68,9 @@ rules_version = '2';
 //
 // Counts on profiles are self-reported by the app and are not verified
 // server-side; treat them as informational.
+//
+// Community collections (posts, reactions, comments) are described in the
+// COMMUNITY block near the end of this file.
 // ===============================================================
 
 service cloud.firestore {
@@ -327,5 +330,319 @@ service cloud.firestore {
         allow delete: if isOwner(uid);
       }
     }
+
+    // =============================================================
+    // COMMUNITY (posts, reactions, comments, public profile reads)
+    // Owned by the social feature. See docs/cloud-data.md#community.
+    // =============================================================
+    //
+    // Collection: posts               Document ID: {authorUid}_{suffix}
+    //   A feed item. The id must start with the author's uid, so nobody
+    //   can take the id of someone else's deterministic post
+    //   ({uid}_review_{bookKey}, {uid}_finished_{bookKey}, ...).
+    //   - authorUid: string (== request.auth.uid, immutable)
+    //   - authorUsername / authorDisplayName: string (== author's profile)
+    //   - type: 'started' | 'finished' | 'shelved' | 'progress' | 'review'
+    //           | 'rating' | 'quote' | 'badge' (review <-> rating may change)
+    //   - visibility: 'public' (any signed-in reader) | 'friends'
+    //   - bookKey, title: string (1-200; both '' for badges)
+    //   - author: string (0-200), coverUrl: string (0-500, '' or https://)
+    //   - rating: int (1..5 for review/rating, else 0)
+    //   - text: string (review text or note; 1-2000 for review, '' for
+    //           rating, else 0-2000)
+    //   - quote: string (1-1000 for quote, else '')
+    //   - chapter: string (0-200)
+    //   - progress: int (1..99 for progress, else 0)
+    //   - badgeId / badgeTitle: string (1-60 for badge, else '')
+    //   - reactions: map {like, love, haha, wow, sad: int >= 0}
+    //   - commentCount: int >= 0
+    //   - commentOpId: string (id of the comment added/removed by the
+    //                  write that last changed commentCount)
+    //   - createdAt: timestamp (== request.time on create, immutable)
+    //   - updatedAt: timestamp (== request.time on every author edit)
+    //
+    // Collection: posts/{postId}/reactions   Document ID: {reactorUid}
+    //   One reaction per reader per post (the id is the reader's uid).
+    //   - uid: string (== document ID)
+    //   - type: one of the reaction keys above
+    //   - username / displayName: string (== reactor's profile)
+    //   - updatedAt: timestamp (== request.time)
+    //
+    // Collection: posts/{postId}/comments    Document ID: auto
+    //   - authorUid: string (== request.auth.uid)
+    //   - authorUsername / authorDisplayName: string (== author's profile)
+    //   - text: string (1-1000)
+    //   - parentId: string ('' for a top-level comment, else the id of a
+    //               top-level comment on the same post: one level of replies)
+    //   - createdAt: timestamp (== request.time)
+    //   Comments are not editable.
+    //
+    // Counters cannot be forged: a post's `reactions` and `commentCount`
+    // are only writable by non-authors in the same atomic write that adds,
+    // changes or removes the matching reaction/comment, and both sides are
+    // checked (the post rule with exists()/existsAfter() on the reaction or
+    // comment, the reaction/comment rule with get()/getAfter() on the post).
+    // Clients use FieldValue.increment, so concurrent writers do not lose
+    // updates; the rules see the post-increment value.
+    //
+    // Friends-only posts: list queries must constrain authorUid to the user
+    // or their friends (`authorUid in [...]`, one query per 30 authors) or
+    // ask for visibility == 'public'; the rules evaluate each `in` value.
+    //
+    // Deleting a post leaves its reactions and comments behind; the rules
+    // let anyone delete those once the post is gone, and the app does so
+    // right after deleting the post.
+
+    function reactionTypes() {
+      return ['like', 'love', 'haha', 'wow', 'sad'];
+    }
+
+    function postPath(postId) {
+      return /databases/$(database)/documents/posts/$(postId);
+    }
+
+    function reactionPath(postId, reactorUid) {
+      return /databases/$(database)/documents/posts/$(postId)/reactions/$(reactorUid);
+    }
+
+    function commentPath(postId, commentId) {
+      return /databases/$(database)/documents/posts/$(postId)/comments/$(commentId);
+    }
+
+    // Read access for a post's data (also gates its reactions/comments).
+    function canReadPost(post) {
+      return isAuthenticated()
+        && (post.visibility == 'public'
+            || post.authorUid == request.auth.uid
+            || areFriends(post.authorUid, request.auth.uid));
+    }
+
+    function isHttpsOrEmpty(value) {
+      return value == '' || value.matches('^https://[^\\s]{1,490}$');
+    }
+
+    // Content fields of a post (shared by create and author edits).
+    function isValidPostContent(data) {
+      let isBook = data.type != 'badge';
+      let isRated = data.type in ['review', 'rating'];
+      return data.type in ['started', 'finished', 'shelved', 'progress',
+            'review', 'rating', 'quote', 'badge']
+        && data.visibility in ['public', 'friends']
+        && isString(data.bookKey, isBook ? 1 : 0, isBook ? 200 : 0)
+        && isString(data.title, isBook ? 1 : 0, isBook ? 200 : 0)
+        && isString(data.author, 0, 200)
+        && isString(data.coverUrl, 0, 500) && isHttpsOrEmpty(data.coverUrl)
+        && isInt(data.rating, isRated ? 1 : 0, isRated ? 5 : 0)
+        && isString(data.text,
+            data.type == 'review' ? 1 : 0,
+            data.type == 'rating' ? 0 : 2000)
+        && isString(data.quote,
+            data.type == 'quote' ? 1 : 0,
+            data.type == 'quote' ? 1000 : 0)
+        && isString(data.chapter, 0, 200)
+        && isInt(data.progress,
+            data.type == 'progress' ? 1 : 0,
+            data.type == 'progress' ? 99 : 0)
+        && isString(data.badgeId,
+            data.type == 'badge' ? 1 : 0,
+            data.type == 'badge' ? 60 : 0)
+        && isString(data.badgeTitle,
+            data.type == 'badge' ? 1 : 0,
+            data.type == 'badge' ? 60 : 0);
+    }
+
+    function postKeys() {
+      return ['authorUid', 'authorUsername', 'authorDisplayName', 'type',
+        'visibility', 'bookKey', 'title', 'author', 'coverUrl', 'rating',
+        'text', 'quote', 'chapter', 'progress', 'badgeId', 'badgeTitle',
+        'reactions', 'commentCount', 'commentOpId', 'createdAt', 'updatedAt'];
+    }
+
+    function isValidNewPost(postId) {
+      let data = incoming();
+      let author = profileOf(request.auth.uid);
+      return data.keys().hasOnly(postKeys())
+        && data.keys().hasAll(postKeys())
+        && postId.matches(request.auth.uid + '_[A-Za-z0-9_|.:-]{1,400}')
+        && data.authorUid == request.auth.uid
+        && data.authorUsername == author.username
+        && data.authorDisplayName == author.displayName
+        && isValidPostContent(data)
+        && data.reactions == {'like': 0, 'love': 0, 'haha': 0, 'wow': 0, 'sad': 0}
+        && data.commentCount == 0
+        && data.commentOpId == ''
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    // The author edits content (e.g. re-saving a review). Counters,
+    // authorship and createdAt are untouched; type may only switch between
+    // review and rating.
+    function isValidPostEdit() {
+      let data = incoming();
+      return isAuthenticated()
+        && resource.data.authorUid == request.auth.uid
+        && data.diff(resource.data).affectedKeys().hasOnly(['authorDisplayName',
+            'type', 'visibility', 'bookKey', 'title', 'author', 'coverUrl',
+            'rating', 'text', 'quote', 'chapter', 'progress', 'badgeId',
+            'badgeTitle', 'updatedAt'])
+        && data.authorDisplayName == profileOf(request.auth.uid).displayName
+        && (data.type == resource.data.type
+            || (data.type in ['review', 'rating']
+                && resource.data.type in ['review', 'rating']))
+        && data.bookKey == resource.data.bookKey
+        && isValidPostContent(data)
+        && data.updatedAt == request.time;
+    }
+
+    // Change of one reaction counter for the reaction of `before` -> `after`
+    // ('' = no reaction).
+    function reactionDelta(type, before, after) {
+      return (type == after ? 1 : 0) - (type == before ? 1 : 0);
+    }
+
+    // The user's reaction changed in this write, and `reactions` moved by
+    // exactly that change.
+    function isReactionCounterUpdate(postId) {
+      let path = reactionPath(postId, request.auth.uid);
+      let before = exists(path) ? get(path).data.type : '';
+      let after = existsAfter(path) ? getAfter(path).data.type : '';
+      let old = resource.data.reactions;
+      let next = incoming().reactions;
+      return isAuthenticated()
+        && incoming().diff(resource.data).affectedKeys().hasOnly(['reactions'])
+        && before != after
+        && next.keys().hasOnly(reactionTypes())
+        && next.keys().hasAll(reactionTypes())
+        && next.like == old.like + reactionDelta('like', before, after)
+        && next.love == old.love + reactionDelta('love', before, after)
+        && next.haha == old.haha + reactionDelta('haha', before, after)
+        && next.wow == old.wow + reactionDelta('wow', before, after)
+        && next.sad == old.sad + reactionDelta('sad', before, after);
+    }
+
+    // commentCount moved by one, matching the comment named by commentOpId
+    // being created or deleted in this same write.
+    function isCommentCounterUpdate(postId) {
+      let opId = incoming().commentOpId;
+      let path = commentPath(postId, opId);
+      return isAuthenticated()
+        && incoming().diff(resource.data).affectedKeys()
+            .hasOnly(['commentCount', 'commentOpId'])
+        && isString(opId, 1, 100)
+        && ((incoming().commentCount == resource.data.commentCount + 1
+              && !exists(path) && existsAfter(path))
+            || (incoming().commentCount == resource.data.commentCount - 1
+              && exists(path) && !existsAfter(path)));
+    }
+
+    match /posts/{postId} {
+      // A missing post may be read (so the app can check before creating
+      // its deterministic posts); it reveals nothing.
+      allow read: if isAuthenticated()
+        && (resource == null || canReadPost(resource.data));
+      allow create: if isAuthenticated() && isValidNewPost(postId);
+      allow update: if isValidPostEdit()
+        || (canReadPost(resource.data)
+            && (isReactionCounterUpdate(postId)
+                || isCommentCounterUpdate(postId)));
+      allow delete: if isAuthenticated()
+        && resource.data.authorUid == request.auth.uid;
+
+      match /reactions/{reactorUid} {
+        allow read: if canReadPost(get(postPath(postId)).data);
+
+        // The post's counter for the new type must go up by one in the
+        // same write (isReactionCounterUpdate checks the full map).
+        allow create, update: if isOwner(reactorUid)
+          && incoming().keys().hasOnly(['uid', 'type', 'username',
+              'displayName', 'updatedAt'])
+          && incoming().keys().hasAll(['uid', 'type', 'username',
+              'displayName', 'updatedAt'])
+          && incoming().uid == reactorUid
+          && incoming().type in reactionTypes()
+          && incoming().username == profileOf(reactorUid).username
+          && incoming().displayName == profileOf(reactorUid).displayName
+          && incoming().updatedAt == request.time
+          && canReadPost(get(postPath(postId)).data)
+          && getAfter(postPath(postId)).data.reactions[incoming().type]
+              == get(postPath(postId)).data.reactions[incoming().type] + 1;
+
+        // Own reaction with the counter going down, or clean-up after the
+        // post was deleted.
+        allow delete: if isAuthenticated()
+          && (!existsAfter(postPath(postId))
+              || (isOwner(reactorUid)
+                  && getAfter(postPath(postId)).data.reactions[resource.data.type]
+                      == get(postPath(postId)).data.reactions[resource.data.type] - 1));
+      }
+
+      match /comments/{commentId} {
+        allow read: if canReadPost(get(postPath(postId)).data);
+
+        allow create: if isAuthenticated()
+          && incoming().keys().hasOnly(['authorUid', 'authorUsername',
+              'authorDisplayName', 'text', 'parentId', 'createdAt'])
+          && incoming().keys().hasAll(['authorUid', 'authorUsername',
+              'authorDisplayName', 'text', 'parentId', 'createdAt'])
+          && incoming().authorUid == request.auth.uid
+          && incoming().authorUsername == profileOf(request.auth.uid).username
+          && incoming().authorDisplayName == profileOf(request.auth.uid).displayName
+          && isString(incoming().text, 1, 1000)
+          && incoming().createdAt == request.time
+          && canReadPost(get(postPath(postId)).data)
+          // Replies only to existing top-level comments.
+          && (incoming().parentId == ''
+              || (isString(incoming().parentId, 1, 100)
+                  && get(commentPath(postId, incoming().parentId)).data.parentId == ''))
+          && getAfter(postPath(postId)).data.commentOpId == commentId
+          && getAfter(postPath(postId)).data.commentCount
+              == get(postPath(postId)).data.commentCount + 1;
+
+        allow update: if false;
+
+        // The comment's author, the post's author, or (for a reply) the
+        // author of the comment it answers; the counter goes down with it.
+        // Anyone may clean up after the post was deleted.
+        allow delete: if isAuthenticated()
+          && (!existsAfter(postPath(postId))
+              || ((resource.data.authorUid == request.auth.uid
+                   || get(postPath(postId)).data.authorUid == request.auth.uid
+                   || (resource.data.parentId != ''
+                       && get(commentPath(postId, resource.data.parentId)).data.authorUid
+                           == request.auth.uid))
+                  && getAfter(postPath(postId)).data.commentOpId == commentId
+                  && getAfter(postPath(postId)).data.commentCount
+                      == get(postPath(postId)).data.commentCount - 1));
+      }
+    }
+
+    // A reader's ratings across all books (collection-group query on
+    // books/{bookKey}/reviews), for their profile. Reviews are already
+    // public per book.
+    match /{path=**}/reviews/{reviewUid} {
+      allow read: if isAuthenticated();
+    }
+
+    // Public profile pieces read by the profile page. Friend lists are
+    // public like on Goodreads, so anyone signed in can count them; writes
+    // stay with the rules above. Library and badges are written by the
+    // sync feature (its rules are elsewhere); these read rules mirror
+    // docs/cloud-data.md and are harmless duplicates once both exist.
+    match /users/{ownerUid}/friends/{friendUid} {
+      allow read: if isAuthenticated();
+    }
+
+    match /users/{ownerUid}/library/{bookKey} {
+      allow read: if isAuthenticated();
+    }
+
+    match /users/{ownerUid}/badges/{badgeId} {
+      allow read: if isAuthenticated();
+    }
+
+    // =============================================================
+    // END COMMUNITY
+    // =============================================================
   }
 }

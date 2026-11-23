@@ -8,11 +8,15 @@ import '../../../design/brutal_widgets.dart';
 import '../data/photo_processing.dart';
 import '../data/social_models.dart';
 import '../data/social_providers.dart';
+import '../../../screens/settings_screen.dart';
+import '../../stats/presentation/stats_screen.dart';
 import 'choose_username_screen.dart';
 import 'friend_profile_screen.dart';
+import 'reader_profile.dart';
 import 'user_avatar.dart';
 
-/// The signed-in user's own profile: photo, display name and bio.
+/// The signed-in user's own profile (the You tab): the same Goodreads-style
+/// page other readers see, plus edit, stats and settings in the app bar.
 class MyProfileScreen extends ConsumerWidget {
   const MyProfileScreen({super.key});
 
@@ -34,21 +38,81 @@ class MyProfileScreen extends ConsumerWidget {
       ),
       data: (me) => me == null
           ? const ChooseUsernameScreen()
-          : _MyProfile(key: ValueKey(me.uid), me: me),
+          : _MyProfileView(key: ValueKey(me.uid), me: me),
     );
   }
 }
 
-class _MyProfile extends ConsumerStatefulWidget {
-  const _MyProfile({required this.me, super.key});
+class _MyProfileView extends StatelessWidget {
+  const _MyProfileView({required this.me, super.key});
+
+  final Profile me;
+
+  void _push(BuildContext context, Widget screen) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: BrutalAppBar(
+        title: 'My profile',
+        actions: [
+          IconButton(
+            tooltip: 'Edit profile',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => _push(context, const EditProfileScreen()),
+          ),
+          IconButton(
+            tooltip: 'Statistics',
+            icon: const Icon(Icons.insights_outlined),
+            onPressed: () => _push(context, const StatsScreen()),
+          ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => _push(context, const SettingsScreen()),
+          ),
+        ],
+      ),
+      body: ReaderProfileView(
+        profile: me,
+        avatar: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => _push(context, const EditProfileScreen()),
+          child: UserAvatar(uid: me.uid, hasPhoto: me.hasPhoto, size: 96),
+        ),
+      ),
+    );
+  }
+}
+
+/// Photo, display name and bio.
+class EditProfileScreen extends ConsumerWidget {
+  const EditProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final me = ref.watch(myProfileProvider).valueOrNull;
+    if (me == null) {
+      return const Scaffold(
+        appBar: BrutalAppBar(title: 'Edit profile'),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return _EditProfile(key: ValueKey(me.uid), me: me);
+  }
+}
+
+class _EditProfile extends ConsumerStatefulWidget {
+  const _EditProfile({required this.me, super.key});
 
   final Profile me;
 
   @override
-  ConsumerState<_MyProfile> createState() => _MyProfileState();
+  ConsumerState<_EditProfile> createState() => _EditProfileState();
 }
 
-class _MyProfileState extends ConsumerState<_MyProfile> {
+class _EditProfileState extends ConsumerState<_EditProfile> {
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.me.displayName);
   late final _bio = TextEditingController(text: widget.me.bio);
@@ -177,16 +241,12 @@ class _MyProfileState extends ConsumerState<_MyProfile> {
     );
 
     return Scaffold(
-      appBar: const BrutalAppBar(title: 'My profile'),
+      appBar: const BrutalAppBar(title: 'Edit profile'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           ProfileHeader(profile: me, avatar: avatar),
-          const SizedBox(height: 20),
-          ProfileStatsRow(profile: me),
           const SizedBox(height: 24),
-          const SectionLabel('Edit profile'),
-          const SizedBox(height: 8),
           Form(
             key: _form,
             onChanged: () => setState(() {}),

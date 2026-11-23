@@ -276,7 +276,8 @@ class _NoteDialogState extends State<_NoteDialog> {
   }
 }
 
-/// Sheet for an existing highlight: recolour, edit note, define, delete.
+/// Sheet for an existing highlight: recolour, edit note, define, share as
+/// a Community quote ([onShare], when available), delete.
 Future<void> showHighlightSheet(
   BuildContext context, {
   required Highlight highlight,
@@ -284,6 +285,7 @@ Future<void> showHighlightSheet(
   required VoidCallback onEditNote,
   required VoidCallback onDelete,
   required ValueChanged<String> onDefine,
+  VoidCallback? onShare,
 }) {
   final word = ReaderSelection(
     cfiRange: highlight.cfiRange,
@@ -364,6 +366,15 @@ Future<void> showHighlightSheet(
                       onEditNote();
                     },
                   ),
+                  if (onShare != null)
+                    IconButton(
+                      tooltip: 'Share as quote',
+                      icon: const Icon(Icons.format_quote_outlined),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        onShare();
+                      },
+                    ),
                   IconButton(
                     tooltip: 'Delete highlight',
                     icon: const Icon(Icons.delete_outline),
