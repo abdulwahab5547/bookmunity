@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="https://standardebooks.org/feeds/atom/style" type="text/xsl"?>
+	<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+		<id>https://standardebooks.org/feeds/atom/all?query=dracula&amp;page=1&amp;per-page=12</id>
+		<link href="https://standardebooks.org/feeds/atom/all?query=dracula&amp;page=1&amp;per-page=12" rel="self" type="application/atom+xml"/>
+		<link rel="first" href="https://standardebooks.org/feeds/atom/all?query=dracula&amp;page=1&amp;per-page=12" type="application/atom+xml"/>
+						<link rel="last" href="https://standardebooks.org/feeds/atom/all?query=dracula&amp;page=1&amp;per-page=12" type="application/atom+xml"/>
+		<link rel="search" href="https://standardebooks.org/opensearch" type="application/opensearchdescription+xml" title="Standard Ebooks"/>
+		<link href="https://standardebooks.org/ebooks/ebooks?query=dracula&amp;page=1&amp;per-page=12" rel="alternate" type="application/xhtml+xml"/>
+		<opensearch:totalResults>1</opensearch:totalResults>
+		<opensearch:startIndex>1</opensearch:startIndex>
+		<opensearch:itemsPerPage>12</opensearch:itemsPerPage>
+		<title>Search Results</title>
+		<subtitle>Results for “dracula”</subtitle>
+		<icon>https://standardebooks.org/images/logo.png</icon>
+		<updated>2026-11-23T14:52:21Z</updated>
+		<author>
+			<name>Standard Ebooks</name>
+			<uri>https://standardebooks.org</uri>
+		</author>
+					<entry>
+	<id>https://standardebooks.org/ebooks/bram-stoker/dracula</id>
+	<title>Dracula</title>
+			<author>
+			<name>Bram Stoker</name>
+			<uri>https://standardebooks.org/ebooks/bram-stoker</uri>
+		</author>
+		<published>2014-05-25T00:00:00Z</published>
+	<updated>2026-11-15T02:56:24Z</updated>
+	<rights>Public domain in the United States. Users located outside of the United States must check their local laws before using this ebook. Original content released to the public domain via the Creative Commons CC0 1.0 Universal Public Domain Dedication.</rights>
+	<summary type="text">An ancient undead monster terrorizes Victorian London.</summary>
+	<content type="html">&lt;p&gt;&lt;i&gt;Dracula&lt;/i&gt; is one of the most famous horror novels, responsible not just for introducing the eponymous Count Dracula, but for laying the foundations for many of the common tropes we see in modern horror fiction.&lt;/p&gt;
+			&lt;p&gt;Count Dracula isn’t the first vampire to have graced the pages of Western literature—that honor belongs to Lord Ruthven in “&lt;a href=&quot;https://standardebooks.org/ebooks/john-william-polidori/the-vampire&quot;&gt;The Vampire&lt;/a&gt;,” a short story by &lt;a href=&quot;https://standardebooks.org/ebooks/john-william-polidori&quot;&gt;John William Polidori&lt;/a&gt;—but Dracula is the vampire on which the modern vampire trope is based.&lt;/p&gt;
+			&lt;p&gt;&lt;i&gt;Dracula&lt;/i&gt; wasn’t as famous in its day as it is today; readers of the time seemed to enjoy it as nothing more than a good story, and &lt;a href=&quot;https://standardebooks.org/ebooks/bram-stoker&quot;&gt;Stoker&lt;/a&gt; died nearly penniless. But its long-lasting influence is undeniable, and for all its age &lt;i&gt;Dracula&lt;/i&gt; remains a gripping, fast-paced, and enjoyable read.&lt;/p&gt;</content>
+			<category scheme="http://purl.org/dc/terms/LCSH" term="Dracula, Count (Fictitious character)--Fiction"/>
+			<category scheme="http://purl.org/dc/terms/LCSH" term="Transylvania (Romania)--Fiction"/>
+			<category scheme="http://purl.org/dc/terms/LCSH" term="Vampires--Fiction"/>
+			<category scheme="http://purl.org/dc/terms/LCSH" term="Whitby (England)--Fiction"/>
+				<category scheme="https://standardebooks.org/vocab/subjects" term="Fiction"/>
+			<category scheme="https://standardebooks.org/vocab/subjects" term="Horror"/>
+		<media:thumbnail url="https://standardebooks.org/ebooks/bram-stoker/dracula/downloads/cover-thumbnail.jpg" height="525" width="350"/>
+	<link href="https://standardebooks.org/ebooks/bram-stoker/dracula" rel="alternate" title="This ebook’s page at Standard Ebooks" type="application/xhtml+xml"/>
+			<link href="https://standardebooks.org/ebooks/bram-stoker/dracula/downloads/bram-stoker_dracula.epub?source=feed" length="633867" rel="enclosure" title="Recommended compatible epub" type="application/epub+zip" />
+				<link href="https://standardebooks.org/ebooks/bram-stoker/dracula/downloads/bram-stoker_dracula_advanced.epub?source=feed" length="575224" rel="enclosure" title="Advanced epub" type="application/epub+zip" />
+				<link href="https://standardebooks.org/ebooks/bram-stoker/dracula/downloads/bram-stoker_dracula.kepub.epub?source=feed" length="625358" rel="enclosure" title="Kobo Kepub epub" type="application/kepub+zip" />
+				<link href="https://standardebooks.org/ebooks/bram-stoker/dracula/downloads/bram-stoker_dracula.azw3?source=feed" length="828224" rel="enclosure" title="Amazon Kindle azw3" type="application/x-mobipocket-ebook" />
+				<link href="https://standardebooks.org/ebooks/bram-stoker/dracula/text/single-page" length="1009624" rel="enclosure" title="XHTML" type="application/xhtml+xml" />
+	</entry>
+			</feed>

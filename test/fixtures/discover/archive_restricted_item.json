@@ -1,0 +1,68 @@
+{
+ "metadata": {
+  "identifier": "bwb_KU-314-467",
+  "title": "DRACULA ",
+  "creator": "Bram Stoker ",
+  "mediatype": "texts",
+  "collection": [
+   "internetarchivebooks",
+   "printdisabled",
+   "inlibrary"
+  ],
+  "access-restricted-item": "true",
+  "language": "eng"
+ },
+ "files": [
+  {
+   "name": "bwb_KU-314-467.epub",
+   "source": "derivative",
+   "hocr_epub_module_version": "0.0.1",
+   "hocr_epub_hocr_version": "1.1.66",
+   "format": "EPUB",
+   "original": "bwb_KU-314-467_hocr.html",
+   "mtime": "1755281289",
+   "size": "3642618",
+   "private": "true",
+   "md5": "044177d8c90ef1df9d69a70a30bbb3aa",
+   "crc32": "aa52a305",
+   "sha1": "c5b08fccf81d9d5f6759d419cf0f2abf70a4b996"
+  },
+  {
+   "name": "bwb_KU-314-467.pdf",
+   "source": "derivative",
+   "pdf_module_version": "0.0.26",
+   "format": "Text PDF",
+   "original": "bwb_KU-314-467_page_numbers.json",
+   "mtime": "1737130472",
+   "size": "30603766",
+   "private": "true",
+   "md5": "309d06d104afeeb19af44131954c9caa",
+   "crc32": "94094de1",
+   "sha1": "2b7db7ddf212eaf91ef88952c10876815b2c726d"
+  },
+  {
+   "name": "bwb_KU-314-467_encrypted.pdf",
+   "source": "derivative",
+   "format": "ACS Encrypted PDF",
+   "original": "bwb_KU-314-467.pdf",
+   "mtime": "1737130541",
+   "size": "30426210",
+   "md5": "340710f01d5c80fc50e08795e74e8039",
+   "crc32": "f0fee8d7",
+   "sha1": "0b7ca1bd79f4a59b879016fd7e72917fa1cb58e5"
+  },
+  {
+   "name": "bwb_KU-314-467_lcp.epub",
+   "source": "derivative",
+   "format": "LCP Encrypted EPUB",
+   "original": "bwb_KU-314-467.epub",
+   "mtime": "1755283206",
+   "size": "4045952",
+   "md5": "97d4970bf6b15b49beb589b4e1dfaaac",
+   "crc32": "2686426a",
+   "sha1": "dd88c1bc722ba727a3358dbcfeee385964565cd4"
+  }
+ ],
+ "server": "ia903107.us.archive.org",
+ "dir": "/28/items/bwb_KU-314-467"
+}

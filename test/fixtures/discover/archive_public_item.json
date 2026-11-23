@@ -1,0 +1,39 @@
+{
+ "metadata": {
+  "identifier": "dracula00stok_8",
+  "title": "Dracula",
+  "creator": "Stoker, Bram, 1847-1912",
+  "mediatype": "texts",
+  "collection": [
+   "library_of_congress",
+   "americana"
+  ],
+  "language": "eng"
+ },
+ "files": [
+  {
+   "name": "dracula00stok_8.epub",
+   "source": "derivative",
+   "original": "dracula00stok_8_abbyy.gz",
+   "mtime": "1699663805",
+   "size": "6206808",
+   "md5": "77c198dc78c939d770880efbbe9d64ec",
+   "crc32": "d6c25bef",
+   "sha1": "8b96b8070ba3f8880c82387696ee7d2f443bae87",
+   "format": "EPUB"
+  },
+  {
+   "name": "dracula00stok_8.pdf",
+   "source": "derivative",
+   "format": "Text PDF",
+   "original": "dracula00stok_8_page_numbers.json",
+   "mtime": "1699547164",
+   "size": "216484443",
+   "md5": "506d0d56b92831ff2558a9f974cd8f06",
+   "crc32": "31ce450f",
+   "sha1": "2683cc1510ec6722716828ea71355fe7be24b6b0"
+  }
+ ],
+ "server": "ia800603.us.archive.org",
+ "dir": "/22/items/dracula00stok_8"
+}

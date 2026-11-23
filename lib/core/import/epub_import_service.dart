@@ -4,20 +4,36 @@ import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:pdfrx/pdfrx.dart' show pdfrxFlutterInitialize;
 
 import '../db/app_database.dart';
 import 'epub_metadata_extractor.dart';
 import 'import_storage.dart';
+import 'pdf/pdf_to_epub_converter.dart';
+
+export 'pdf/pdf_to_epub_converter.dart'
+    show
+        PdfConversionCancelToken,
+        PdfConversionCancelled,
+        PdfConversionProgress;
 
 class ImportResult {
   const ImportResult({
     required this.title,
     required this.duplicate,
     this.reattached = false,
+    this.bookId,
+    this.scannedPdf = false,
   });
 
   final String title;
   final bool duplicate;
+
+  /// The library row now holding the book, e.g. for "Read now".
+  final int? bookId;
+
+  /// Converted from a PDF without a text layer: one image per page.
+  final bool scannedPdf;
 
   /// The file was attached to a book already in the library (restored from
   /// the cloud without its file), keeping its progress and highlights.
@@ -29,38 +45,106 @@ class EpubImportService {
 
   final AppDatabase database;
 
-  Future<List<ImportResult>> pickAndImport() async {
+  /// Lets the user pick EPUB or PDF files. Nothing is imported yet; pass
+  /// each file to [importFile].
+  Future<List<PlatformFile>> pickFiles() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: ['epub'],
+      allowedExtensions: ['epub', 'pdf'],
       withData: true,
     );
-    if (result == null) return const [];
+    return result?.files ?? const [];
+  }
 
+  Future<List<ImportResult>> pickAndImport() async {
     final imported = <ImportResult>[];
-    for (final selected in result.files) {
+    for (final selected in await pickFiles()) {
       imported.add(await importFile(selected));
     }
     return imported;
   }
 
-  Future<ImportResult> importFile(PlatformFile source) async {
-    return importBytes(await readPlatformFile(source), filename: source.name);
+  Future<ImportResult> importFile(
+    PlatformFile source, {
+    PdfConversionProgress? onProgress,
+    PdfConversionCancelToken? cancelToken,
+  }) async {
+    return importBytes(
+      await readPlatformFile(source),
+      filename: source.name,
+      onProgress: onProgress,
+      cancelToken: cancelToken,
+    );
   }
+
+  static bool isPdf(List<int> bytes) {
+    final head = String.fromCharCodes(bytes.take(1024));
+    return head.contains('%PDF-');
+  }
+
+  /// Converts a PDF to EPUB on the device. Large PDFs take a while; the
+  /// work runs off the UI thread and reports [onProgress].
+  Future<PdfConversionResult> convertPdf(
+    List<int> bytes, {
+    String? filename,
+    PdfConversionProgress? onProgress,
+    PdfConversionCancelToken? cancelToken,
+  }) {
+    return PdfToEpubConverter(
+      initialize: () => pdfrxFlutterInitialize(),
+    ).convert(
+      bytes is Uint8List ? bytes : Uint8List.fromList(bytes),
+      filename: filename,
+      onProgress: onProgress,
+      cancelToken: cancelToken,
+    );
+  }
+
+  static String _epubName(String? filename) => (filename ?? 'book.pdf')
+      .replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '.epub');
 
   /// Imports an EPUB held in memory, e.g. downloaded from a public library
   /// or converted from a PDF. [sourceUrl] is kept so the book can be
   /// downloaded again later.
+  ///
+  /// A PDF is converted to EPUB first; [onProgress] and [cancelToken] only
+  /// apply to that conversion.
   Future<ImportResult> importBytes(
     List<int> bytes, {
     String? filename,
     String? sourceUrl,
+    PdfConversionProgress? onProgress,
+    PdfConversionCancelToken? cancelToken,
   }) async {
+    if (isPdf(bytes) && !_looksLikeZip(bytes)) {
+      final converted = await convertPdf(
+        bytes,
+        filename: filename,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+      final result = await importBytes(
+        converted.epub,
+        filename: _epubName(filename),
+        sourceUrl: sourceUrl,
+      );
+      return ImportResult(
+        title: result.title,
+        duplicate: result.duplicate,
+        reattached: result.reattached,
+        bookId: result.bookId,
+        scannedPdf: converted.scanned,
+      );
+    }
     final hash = sha256.convert(bytes).toString();
     final existing = await database.findBookByHash(hash);
     if (existing != null && !_needsFile(existing)) {
-      return ImportResult(title: existing.title, duplicate: true);
+      return ImportResult(
+        title: existing.title,
+        duplicate: true,
+        bookId: existing.id,
+      );
     }
 
     final archive = ZipDecoder().decodeBytes(bytes);
@@ -86,7 +170,7 @@ class EpubImportService {
     }
 
     final now = DateTime.now();
-    await database.addBook(
+    final id = await database.addBook(
       BooksCompanion.insert(
         title: metadata.title,
         author: Value(metadata.author),
@@ -99,8 +183,11 @@ class EpubImportService {
         sourceUrl: Value(sourceUrl),
       ),
     );
-    return ImportResult(title: metadata.title, duplicate: false);
+    return ImportResult(title: metadata.title, duplicate: false, bookId: id);
   }
+
+  static bool _looksLikeZip(List<int> bytes) =>
+      bytes.length > 4 && bytes[0] == 0x50 && bytes[1] == 0x4B;
 
   Future<EpubMetadata> _extractMetadata(Archive archive, String? filename) {
     return Isolate.run(
@@ -174,6 +261,7 @@ class EpubImportService {
       title: target.title,
       duplicate: false,
       reattached: true,
+      bookId: target.id,
     );
   }
 
@@ -181,7 +269,7 @@ class EpubImportService {
   Future<ImportResult?> pickAndReattach(Book book) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['epub'],
+      allowedExtensions: ['epub', 'pdf'],
       withData: true,
     );
     final selected = result?.files.firstOrNull;
@@ -201,10 +289,19 @@ class EpubImportService {
     String? filename,
     String? sourceUrl,
   }) async {
+    if (isPdf(bytes) && !_looksLikeZip(bytes)) {
+      // The book came from a PDF (picked or downloaded): convert it again.
+      bytes = (await convertPdf(bytes, filename: filename)).epub;
+      filename = _epubName(filename);
+    }
     final hash = sha256.convert(bytes).toString();
     final owner = await database.findBookByHash(hash);
     if (owner != null && owner.id != book.id && !_needsFile(owner)) {
-      return ImportResult(title: owner.title, duplicate: true);
+      return ImportResult(
+        title: owner.title,
+        duplicate: true,
+        bookId: owner.id,
+      );
     }
     final archive = ZipDecoder().decodeBytes(bytes);
     final names = archive.files.map((file) => file.name).toSet();
