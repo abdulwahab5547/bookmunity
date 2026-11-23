@@ -319,10 +319,10 @@ class _QuerySource implements PagedSource<Post> {
 
   @override
   Future<SourcePage<Post>> fetch(int count) async {
-    var query = _query.limit(count);
+    var query = _query;
     final last = _last;
     if (last != null) query = query.startAfterDocument(last);
-    final result = await query.get();
+    final result = await query.limit(count).get();
     if (result.docs.isNotEmpty) _last = result.docs.last;
     return SourcePage(
       [for (final doc in result.docs) ?Post.fromDoc(doc)],

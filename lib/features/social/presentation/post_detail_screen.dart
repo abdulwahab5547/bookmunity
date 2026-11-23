@@ -297,18 +297,23 @@ class CommentTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                Row(
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    const SizedBox(width: 8),
-                    Text(
-                      timeAgo(comment.createdAt),
-                      style: theme.textTheme.labelSmall,
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, right: 4),
+                      child: Text(
+                        timeAgo(comment.createdAt),
+                        style: theme.textTheme.labelSmall,
+                      ),
                     ),
                     if (onReply != null)
                       TextButton(
                         onPressed: onReply,
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: const Size(0, 36),
                         ),
                         child: const Text('Reply'),
                       ),
@@ -317,6 +322,8 @@ class CommentTile extends StatelessWidget {
                         onPressed: onDelete,
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: const Size(0, 36),
                           foregroundColor: theme.colorScheme.onSurfaceVariant,
                         ),
                         child: const Text('Delete'),
