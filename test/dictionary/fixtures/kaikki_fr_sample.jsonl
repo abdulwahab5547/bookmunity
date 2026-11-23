@@ -1,0 +1,13 @@
+{"pos": "verb", "word": "manger", "lang": "French", "lang_code": "fr", "etymology_text": "From Old French mangier.", "forms": [{"form": "no-table-tags", "tags": ["table-tags"]}], "senses": [{"glosses": ["to eat"], "examples": [{"text": "J'ai mangé de la viande à midi.", "english": "I ate some meat for lunch."}], "tags": ["transitive"]}, {"glosses": ["to eat up, to consume"], "tags": ["figuratively"]}]}
+{"pos": "noun", "word": "manger", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["food, foodstuff"]}]}
+{"pos": "verb", "word": "mangeons", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["first-person plural present indicative of manger"], "form_of": [{"word": "manger"}], "tags": ["form-of", "indicative", "plural"]}, {"glosses": ["first-person plural imperative of manger"], "form_of": [{"word": "manger"}]}]}
+{"pos": "noun", "word": "homme", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["man (adult male)"]}, {"glosses": ["human being"], "examples": [{"text": "L'homme est un animal social."}]}]}
+{"pos": "noun", "word": "œil", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["eye"]}]}
+{"pos": "noun", "word": "yeux", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["plural of œil"], "form_of": [{"word": "œil"}]}]}
+{"pos": "adj", "word": "beau", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["handsome, fine, attractive"]}, {"glosses": ["weather", "fair (weather)"], "examples": [{"text": "Il fait beau.", "english": "It is nice out."}]}]}
+{"pos": "adj", "word": "belles", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["feminine plural of beau"], "form_of": [{"word": "beau"}]}]}
+{"pos": "noun", "word": "pomme de terre", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["potato"]}]}
+{"pos": "name", "word": "Paris", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["Paris (the capital city of France)"]}]}
+{"pos": "romanization", "word": "ignored", "lang": "French", "lang_code": "fr", "senses": [{"glosses": ["should be skipped"]}]}
+{"pos": "noun", "word": "sans gloss", "lang": "French", "lang_code": "fr", "senses": [{"tags": ["no-gloss"]}]}
+this line is not JSON and must be skipped

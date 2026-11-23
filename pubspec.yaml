@@ -45,6 +45,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
   path_provider: ^2.1.5
   shared_preferences: ^2.5.3
+  sqlite3: ^3.5.2
   sqlite3_flutter_libs: ^0.5.28
   xml: ^6.5.0
   http: ^1.6.0
@@ -79,6 +80,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/reader/
+    - assets/dictionary/
     - assets/branding/logo.png
 
   # To add assets to your application, add an assets section, like this:

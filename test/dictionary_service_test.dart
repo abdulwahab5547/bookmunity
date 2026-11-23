@@ -21,6 +21,7 @@ void main() {
     expect(entry.phonetic, '/ˈɹæbɪt/');
     expect(entry.meanings.map((m) => m.partOfSpeech), ['noun', 'verb']);
     expect(entry.meanings.first.senses, hasLength(2));
+    expect(entry.meanings.first.senses.first.example, 'The rabbit hopped.');
     expect(entry.shortDefinition, 'A mammal of the family Leporidae.');
   });
 
@@ -29,57 +30,42 @@ void main() {
     expect(DictionaryEntry.parse('{"title":"No Definitions Found"}'), isNull);
   });
 
-  test('candidate forms for inflected words', () {
-    expect(DictionaryService.candidates('Rabbits'), ['rabbits', 'rabbit']);
-    expect(DictionaryService.candidates('hurried'), contains('hurry'));
-    expect(DictionaryService.candidates('running'), contains('run'));
-    expect(DictionaryService.candidates('making'), contains('make'));
-    expect(DictionaryService.candidates("Alice’s"), ['alice']);
-  });
-
-  group('lookup', () {
+  group('online phonetics', () {
     late AppDatabase database;
     setUp(() => database = AppDatabase(NativeDatabase.memory()));
     tearDown(() => database.close());
 
-    test('falls back to the stem and caches the hit', () async {
+    test('fetches once, then serves from the cache offline', () async {
       final requested = <String>[];
-      final client = MockClient((request) async {
-        final word = request.url.pathSegments.last;
-        requested.add(word);
-        return word == 'rabbit'
-            ? http.Response.bytes(_utf8(_body), 200)
-            : http.Response('{}', 404);
-      });
-      final service = DictionaryService(database, client: client);
-      final result = await service.lookup('Rabbits');
-      expect(result, isA<DictionaryFound>());
-      expect(requested, ['rabbits', 'rabbit']);
+      final online = OnlinePhonetics(
+        database,
+        client: MockClient((request) async {
+          requested.add(request.url.pathSegments.last);
+          return http.Response.bytes(utf8.encode(_body), 200);
+        }),
+      );
+      expect(await online.phonetic('Rabbit'), '/ˈɹæbɪt/');
+      expect(requested, ['rabbit']);
 
-      // Second lookup is served from the cache without the network.
-      final offline = DictionaryService(
+      final offline = OnlinePhonetics(
         database,
         client: MockClient((_) async => throw Exception('offline')),
       );
-      expect(await offline.lookup('rabbit'), isA<DictionaryFound>());
+      expect(await offline.phonetic('rabbit'), '/ˈɹæbɪt/');
     });
 
-    test('reports offline instead of not-found when the network fails', () async {
-      final service = DictionaryService(
+    test('is silent when offline or not found', () async {
+      final offline = OnlinePhonetics(
         database,
         client: MockClient((_) async => throw Exception('no network')),
       );
-      expect(await service.lookup('gryphon'), isA<DictionaryOffline>());
-    });
-
-    test('reports not found on 404', () async {
-      final service = DictionaryService(
+      expect(await offline.phonetic('gryphon'), isNull);
+      final missing = OnlinePhonetics(
         database,
         client: MockClient((_) async => http.Response('{}', 404)),
       );
-      expect(await service.lookup('zzzq'), isA<DictionaryNotFound>());
+      expect(await missing.phonetic('zzzq'), isNull);
+      expect(await missing.phonetic('look up'), isNull);
     });
   });
 }
-
-List<int> _utf8(String value) => const Utf8Codec().encode(value);

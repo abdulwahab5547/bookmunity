@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/auth_controller.dart';
 import '../design/brutal_theme.dart';
 import '../design/brutal_widgets.dart';
+import '../features/dictionary/dictionaries_screen.dart';
 import '../features/reader/presentation/widgets/reader_settings_sheet.dart';
 import '../features/social/data/social_providers.dart';
 import '../features/social/presentation/friends_screen.dart';
@@ -112,6 +113,16 @@ class SettingsScreen extends ConsumerWidget {
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => showReaderSettingsSheet(context),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.translate),
+            title: const Text('Dictionaries'),
+            subtitle: const Text('English built in · download more languages'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const DictionariesScreen()),
+            ),
           ),
           const SizedBox(height: 16),
           const SectionLabel('Friends and privacy'),
