@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/home_shell.dart';
 import '../../../core/db/app_database.dart';
 import '../../../core/sync/cloud_settings.dart';
 import '../../../design/book_cover.dart';
@@ -10,6 +11,7 @@ import '../../../providers/app_providers.dart';
 import '../../../screens/settings_screen.dart';
 import '../../achievements/data/achievement_service.dart';
 import '../../book_detail/presentation/book_detail_screen.dart';
+import '../../discover/presentation/import_files_flow.dart';
 import '../../reader/presentation/reader_screen.dart';
 import '../../stats/presentation/stats_screen.dart';
 
@@ -49,7 +51,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     setState(() => importing = true);
     try {
       final service = await ref.read(importServiceProvider.future);
-      final results = await service.pickAndImport();
+      if (!mounted) return;
+      final results = await pickAndImportBooks(context, service);
       if (!mounted || results.isEmpty) return;
       final duplicates = results.where((result) => result.duplicate).length;
       final added = results.length - duplicates;
@@ -156,10 +159,26 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             return EmptyState(
               icon: Icons.local_library_outlined,
               title: 'Your library is empty',
-              message: 'Add an EPUB from your device to start reading.',
-              action: BrutalPressable(
-                onPressed: importing ? null : _import,
-                child: const Text('Add your first book'),
+              message:
+                  'Download a free classic, or add an EPUB or PDF from '
+                  'your device.',
+              action: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  BrutalPressable(
+                    onPressed: () => ref.read(homeTabProvider.notifier).state =
+                        HomeTab.discover,
+                    child: const Text('Browse free books'),
+                  ),
+                  BrutalPressable(
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    onPressed: importing ? null : _import,
+                    child: const Text('Add from device'),
+                  ),
+                ],
               ),
             );
           }

@@ -250,7 +250,8 @@ class PdfLineBuilder {
     final rightBottom = rightLines.map((line) => line.bottom).reduce(math.min);
     final overlap =
         math.min(leftTop, rightTop) - math.max(leftBottom, rightBottom);
-    final span = math.max(leftTop, rightTop) - math.min(leftBottom, rightBottom);
+    final span =
+        math.max(leftTop, rightTop) - math.min(leftBottom, rightBottom);
     if (span <= 0 || overlap / span < 0.3) return null;
     return gutter;
   }

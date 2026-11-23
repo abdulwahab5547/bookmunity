@@ -24,7 +24,11 @@ class _PageBuilder {
   }
 
   /// Body lines; the first is indented and the last is short.
-  void paragraph(List<String> text, {bool indent = true, bool fullLast = false}) {
+  void paragraph(
+    List<String> text, {
+    bool indent = true,
+    bool fullLast = false,
+  }) {
     for (var i = 0; i < text.length; i++) {
       final last = i == text.length - 1;
       final left = indent && i == 0 ? 78.0 : 60.0;
@@ -58,12 +62,32 @@ class _PageBuilder {
 }
 
 const _vocabulary = [
-  'keeper', 'harbour', 'lantern', 'stone', 'merchant', 'corridor', 'waves',
-  'northward', 'ancient', 'silent', 'burning', 'stories', 'rocks', 'night',
+  'keeper',
+  'harbour',
+  'lantern',
+  'stone',
+  'merchant',
+  'corridor',
+  'waves',
+  'northward',
+  'ancient',
+  'silent',
+  'burning',
+  'stories',
+  'rocks',
+  'night',
 ];
 
 const _digits = [
-  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+  'zero',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
   'nine',
 ];
 
@@ -92,10 +116,7 @@ void main() {
     });
 
     test('keeps hyphens of compound words before capitals', () {
-      expect(
-        joinPdfLines(['an Anglo-', 'Saxon king']),
-        'an Anglo-Saxon king',
-      );
+      expect(joinPdfLines(['an Anglo-', 'Saxon king']), 'an Anglo-Saxon king');
     });
 
     test('joins plain lines with one space and keeps dashes tight', () {
@@ -176,7 +197,11 @@ void main() {
       final pages = [
         for (var n = 1; n <= 2; n++)
           (_PageBuilder(n)
-                ..heading(n == 1 ? 'CHAPTER IV' : 'CHAPTER V', size: 16, gapAfter: 8)
+                ..heading(
+                  n == 1 ? 'CHAPTER IV' : 'CHAPTER V',
+                  size: 16,
+                  gapAfter: 8,
+                )
                 ..heading(n == 1 ? 'The Golden Age' : 'Sunset', size: 16)
                 ..paragraph(_words('Body $n', 4)))
               .build(),
@@ -245,18 +270,30 @@ void main() {
 
     test('breaks at a larger vertical gap between flush paragraphs', () {
       final page = _PageBuilder(1)
-        ..paragraph(['Block one line one', 'block one line two.'], indent: false)
+        ..paragraph([
+          'Block one line one',
+          'block one line two.',
+        ], indent: false)
         ..y -= 14
-        ..paragraph(['Block two line one', 'block two line two.'], indent: false);
+        ..paragraph([
+          'Block two line one',
+          'block two line two.',
+        ], indent: false);
       final blocks = analyzer.analyze([page.build()]).chapters.single.blocks;
       expect(blocks.whereType<ParagraphBlock>(), hasLength(2));
     });
 
     test('continues a sentence across a page break', () {
       final one = _PageBuilder(1)
-        ..paragraph(['The keeper climbed the', 'stairs and looked out over'], fullLast: true);
+        ..paragraph([
+          'The keeper climbed the',
+          'stairs and looked out over',
+        ], fullLast: true);
       final two = _PageBuilder(2)
-        ..paragraph(['the dark water below.', 'Nobody answered.'], indent: false);
+        ..paragraph([
+          'the dark water below.',
+          'Nobody answered.',
+        ], indent: false);
       final blocks = analyzer
           .analyze([one.build(), two.build()])
           .chapters
@@ -271,7 +308,12 @@ void main() {
 
     test('keeps line breaks for verse', () {
       final page = _PageBuilder(1);
-      for (final verse in ['Fool! All that is', 'at all lasts ever', 'past recall', 'said he']) {
+      for (final verse in [
+        'Fool! All that is',
+        'at all lasts ever',
+        'past recall',
+        'said he',
+      ]) {
         page.lines.add(
           PdfTextLine(
             text: verse,

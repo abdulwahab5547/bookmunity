@@ -107,7 +107,13 @@ class PdfInfoReader {
         .trim();
     final lower = title.toLowerCase();
     if (title.length < 2 ||
-        const {'untitled', 'title', 'document', 'unknown', 'none'}.contains(lower) ||
+        const {
+          'untitled',
+          'title',
+          'document',
+          'unknown',
+          'none',
+        }.contains(lower) ||
         RegExp(r'^(document|untitled|doc)\s*\d*$').hasMatch(lower) ||
         // A file name or job id rather than a title.
         (!title.contains(' ') && RegExp(r'[_\d]').hasMatch(title)) ||
@@ -123,8 +129,14 @@ class PdfInfoReader {
     final lower = author.toLowerCase();
     if (author.length < 2 ||
         author.length > 120 ||
-        const {'unknown', 'anonymous', 'author', 'admin', 'user', 'owner'}
-            .contains(lower)) {
+        const {
+          'unknown',
+          'anonymous',
+          'author',
+          'admin',
+          'user',
+          'owner',
+        }.contains(lower)) {
       return null;
     }
     return author;
@@ -196,9 +208,7 @@ class PdfInfoReader {
   String? _hex(String text, int start) {
     final end = text.indexOf('>', start);
     if (end < 0 || end - start > 8000) return null;
-    final digits = text
-        .substring(start + 1, end)
-        .replaceAll(RegExp(r'\s'), '');
+    final digits = text.substring(start + 1, end).replaceAll(RegExp(r'\s'), '');
     if (!RegExp(r'^[0-9A-Fa-f]*$').hasMatch(digits)) return null;
     final padded = digits.length.isOdd ? '${digits}0' : digits;
     final bytes = <int>[

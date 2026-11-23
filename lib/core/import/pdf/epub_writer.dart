@@ -114,9 +114,12 @@ class EpubWriter {
             case PageImageBlock(:final pageNumber):
               if (!book.pageImages.containsKey(pageNumber)) continue;
               usedImages.add(pageNumber);
+              // The caption is real text, which the reader needs to place
+              // reading positions; image-only pages would have none.
               body.write(
                 '<div class="page-image"><img src="../${_imageHref(pageNumber)}" '
-                'alt="Page $pageNumber"/></div>\n',
+                'alt="Page $pageNumber"/>'
+                '<p class="page-caption">Page $pageNumber</p></div>\n',
               );
           }
         }
@@ -142,9 +145,7 @@ class EpubWriter {
       archive.add(
         ArchiveFile.bytes('OEBPS/${_imageHref(page)}', book.pageImages[page]!),
       );
-      manifest.add(
-        _ManifestItem('p$page', _imageHref(page), 'image/jpeg'),
-      );
+      manifest.add(_ManifestItem('p$page', _imageHref(page), 'image/jpeg'));
     }
 
     if (toc.isEmpty && spine.isNotEmpty) {
@@ -152,9 +153,7 @@ class EpubWriter {
       toc.add(_TocEntry(book.title, first.href));
     }
 
-    archive.add(
-      ArchiveFile.string('OEBPS/nav.xhtml', _nav(book, toc)),
-    );
+    archive.add(ArchiveFile.string('OEBPS/nav.xhtml', _nav(book, toc)));
     archive.add(ArchiveFile.string('OEBPS/toc.ncx', _ncx(book, toc)));
     archive.add(
       ArchiveFile.string('OEBPS/content.opf', _opf(book, manifest, spine)),
@@ -230,9 +229,7 @@ class EpubWriter {
         '    <item id="ncx" href="toc.ncx" '
         'media-type="application/x-dtbncx+xml"/>',
       )
-      ..writeln(
-        '    <item id="css" href="style.css" media-type="text/css"/>',
-      );
+      ..writeln('    <item id="css" href="style.css" media-type="text/css"/>');
     for (final item in manifest) {
       items.writeln(
         '    <item id="${item.id}" href="${escapeXml(item.href)}" '
@@ -240,9 +237,7 @@ class EpubWriter {
         '${item.properties == null ? '' : ' properties="${item.properties}"'}/>',
       );
     }
-    final refs = spine
-        .map((id) => '    <itemref idref="$id"/>')
-        .join('\n');
+    final refs = spine.map((id) => '    <itemref idref="$id"/>').join('\n');
     final creator = book.author.trim().isEmpty
         ? ''
         : '    <dc:creator id="creator">${escapeXml(book.author)}</dc:creator>\n';
@@ -328,7 +323,8 @@ p { margin: 0 0 0.2em; text-indent: 1.2em; text-align: justify; }
 h1 + p, h2 + p, h3 + p, .page-image + p { text-indent: 0; }
 p.lines { text-indent: 0; text-align: left; margin: 0.6em 0; }
 .page-image { text-align: center; margin: 0.5em 0; page-break-inside: avoid; break-inside: avoid; }
-.page-image img { max-width: 100%; max-height: 96vh; }
+.page-image img { max-width: 100%; max-height: 90vh; }
+.page-image p.page-caption { text-indent: 0; text-align: center; font-size: 0.75em; opacity: 0.6; margin: 0.3em 0 0; }
 .cover { text-align: center; margin: 0; padding: 0; }
 .cover img { max-width: 100%; max-height: 98vh; }
 ''';

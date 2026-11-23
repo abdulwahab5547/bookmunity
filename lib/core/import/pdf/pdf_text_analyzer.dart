@@ -33,7 +33,7 @@ class PdfTextAnalyzer {
     caseSensitive: false,
   );
   static final _ocrPageNumber = RegExp(r'^[0-9lIOoSZ]{1,3}$');
-  static final _terminal =RegExp('[.!?:;"”’)\\]»…]\$');
+  static final _terminal = RegExp('[.!?:;"”’)\\]»…]\$');
   static final _letter = RegExp(r'\p{L}', unicode: true);
   static final _lowerStart = RegExp(r'^\p{Ll}', unicode: true);
 
@@ -109,14 +109,12 @@ class PdfTextAnalyzer {
   /// Up to two lines in the top and bottom 12% of the page.
   Iterable<PdfTextLine> _marginLines(PdfPageLayout page) sync* {
     if (page.height <= 0) return;
-    final top = page.lines
-        .where((line) => line.bottom > page.height * 0.88)
-        .toList()
-      ..sort((a, b) => b.top.compareTo(a.top));
-    final bottom = page.lines
-        .where((line) => line.top < page.height * 0.12)
-        .toList()
-      ..sort((a, b) => a.bottom.compareTo(b.bottom));
+    final top =
+        page.lines.where((line) => line.bottom > page.height * 0.88).toList()
+          ..sort((a, b) => b.top.compareTo(a.top));
+    final bottom =
+        page.lines.where((line) => line.top < page.height * 0.12).toList()
+          ..sort((a, b) => a.bottom.compareTo(b.bottom));
     yield* top.take(2);
     yield* bottom.take(2);
   }
@@ -184,7 +182,9 @@ class PdfTextAnalyzer {
             looksLikeHeading(text);
         final columnWidth = math.max(colRight - colLeft, 1.0);
         final short =
-            line.width < columnWidth * 0.8 || lines.length < 4 || text.length < 40;
+            line.width < columnWidth * 0.8 ||
+            lines.length < 4 ||
+            text.length < 40;
         final pattern =
             chapterPattern.hasMatch(text.trim()) && text.length <= 80 && short;
         PdfOutlineEntry? outlineEntry;
@@ -230,14 +230,18 @@ class PdfTextAnalyzer {
     return overlap > math.min(a.width, b.width) * 0.5;
   }
 
-  static String normalizeTitle(String value) =>
-      value.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), '');
+  static String normalizeTitle(String value) => value.toLowerCase().replaceAll(
+    RegExp(r'[^\p{L}\p{N}]+', unicode: true),
+    '',
+  );
 
   bool _matchesTitle(String line, String title) {
     final a = normalizeTitle(line);
     final b = normalizeTitle(title);
     if (a.length < 2 || b.length < 2) return false;
-    return a == b || (a.startsWith(b) && b.length >= 4) || (b.startsWith(a) && a.length >= 4);
+    return a == b ||
+        (a.startsWith(b) && b.length >= 4) ||
+        (b.startsWith(a) && a.length >= 4);
   }
 
   double _leading(List<_Line> lines, double body) {
@@ -537,13 +541,17 @@ class PdfTextAnalyzer {
         PageImageBlock() => 2200,
       };
       if (length >= target) {
-        chunks.add(BookChapter(title: 'Part ${chunks.length + 1}', blocks: current));
+        chunks.add(
+          BookChapter(title: 'Part ${chunks.length + 1}', blocks: current),
+        );
         current = [];
         length = 0;
       }
     }
     if (current.isNotEmpty) {
-      chunks.add(BookChapter(title: 'Part ${chunks.length + 1}', blocks: current));
+      chunks.add(
+        BookChapter(title: 'Part ${chunks.length + 1}', blocks: current),
+      );
     }
     return chunks;
   }

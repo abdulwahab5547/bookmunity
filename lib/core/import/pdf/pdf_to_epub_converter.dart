@@ -77,7 +77,8 @@ class PdfToEpubConverter {
         onProgress?.call(value.clamp(0.0, 1.0), stage);
     final cancel = cancelToken ?? PdfConversionCancelToken();
 
-    if (bytes.length < 5 || String.fromCharCodes(bytes.sublist(0, 5)) != '%PDF-') {
+    if (bytes.length < 5 ||
+        String.fromCharCodes(bytes.sublist(0, 5)) != '%PDF-') {
       // Some files carry junk before the header; PDFium accepts that, so
       // only reject when there is no header near the start at all.
       final head = String.fromCharCodes(bytes.take(1024));
@@ -260,9 +261,8 @@ class PdfToEpubConverter {
 // Isolate entry points are top-level so their closures capture nothing but
 // their arguments.
 
-Future<PdfInfo> _readInfo(Uint8List bytes, String? filename) => Isolate.run(
-  () => const PdfInfoReader().read(bytes, filename: filename),
-);
+Future<PdfInfo> _readInfo(Uint8List bytes, String? filename) =>
+    Isolate.run(() => const PdfInfoReader().read(bytes, filename: filename));
 
 Future<String> _fingerprint(Uint8List bytes) =>
     Isolate.run(() => PdfEpubBuilder.fingerprintOf(bytes));
