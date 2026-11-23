@@ -142,34 +142,45 @@ class DiscoverBookCard extends StatelessWidget {
           children: [
             DiscoverCover(title: book.title, url: book.coverUrl),
             const SizedBox(height: 8),
-            Text(
-              book.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall,
+            // The text area takes what is left, so long titles or large
+            // text sizes shorten the title instead of overflowing.
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    book.authorLine,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 6),
+                  if (download != null && download.active)
+                    BrutalProgressBar(
+                      value: download.fraction ?? 0.05,
+                      height: 6,
+                      color: BrutalColors.blue,
+                    )
+                  else if (inLibrary || download?.phase == DownloadPhase.done)
+                    const DiscoverTag(
+                      label: 'In library',
+                      icon: Icons.check,
+                      color: BrutalColors.green,
+                    )
+                  else if (showSource)
+                    DiscoverTag(label: book.source.shortLabel),
+                ],
+              ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              book.authorLine,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 6),
-            if (download != null && download.active)
-              BrutalProgressBar(
-                value: download.fraction ?? 0.05,
-                height: 6,
-                color: BrutalColors.blue,
-              )
-            else if (inLibrary || download?.phase == DownloadPhase.done)
-              const DiscoverTag(
-                label: 'In library',
-                icon: Icons.check,
-                color: BrutalColors.green,
-              )
-            else if (showSource)
-              DiscoverTag(label: book.source.shortLabel),
           ],
         ),
       ),
@@ -182,7 +193,7 @@ const discoverGridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
   maxCrossAxisExtent: 168,
   crossAxisSpacing: 14,
   mainAxisSpacing: 18,
-  childAspectRatio: 0.47,
+  childAspectRatio: 0.45,
 );
 
 /// Placeholder cards while a listing loads.

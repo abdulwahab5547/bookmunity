@@ -130,6 +130,27 @@ void main() {
   });
 
   group('PdfEpubBuilder', () {
+    test('the same PDF always converts to the same bytes', () {
+      PdfExtraction extraction(String filename) => PdfExtraction(
+        pages: [
+          PdfRawPageText(
+            pageNumber: 1,
+            width: 595,
+            height: 842,
+            text: 'Hi',
+            rects: Float64List.fromList([60, 780, 66, 769, 66, 780, 70, 769]),
+          ),
+        ],
+        outline: const [],
+        info: const PdfInfo(title: 'Same Book'),
+        fingerprint: 'abc123',
+        filename: filename,
+      );
+      final first = const PdfEpubBuilder().build(extraction('a.pdf')).epub;
+      final second = const PdfEpubBuilder().build(extraction('copy.pdf')).epub;
+      expect(second, first);
+    });
+
     test('treats PDFs without a text layer as scanned', () {
       expect(PdfEpubBuilder.looksScanned([0, 0, 0, 5]), isTrue);
       expect(PdfEpubBuilder.looksScanned([900, 1200, 0, 1100]), isFalse);

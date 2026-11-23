@@ -85,7 +85,10 @@ class PdfEpubBuilder {
         chapters: chapters,
         coverJpeg: source.coverJpeg,
         pageImages: source.pageImages,
-        source: source.filename,
+        // Deterministic output (fixed date, no file name): converting the
+        // same PDF again gives the same EPUB, so importing it twice is
+        // recognised as a duplicate.
+        modified: DateTime.utc(2020),
       ),
     );
     return PdfEpubBuildResult(

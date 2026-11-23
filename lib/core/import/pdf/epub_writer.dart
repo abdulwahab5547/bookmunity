@@ -159,7 +159,11 @@ class EpubWriter {
       ArchiveFile.string('OEBPS/content.opf', _opf(book, manifest, spine)),
     );
 
-    return ZipEncoder().encodeBytes(archive);
+    // Fixed entry dates keep the output byte-identical for the same input.
+    return ZipEncoder().encodeBytes(
+      archive,
+      modified: book.modified ?? DateTime.now(),
+    );
   }
 
   static String _imageHref(int page) =>
