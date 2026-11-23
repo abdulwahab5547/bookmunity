@@ -52,3 +52,4 @@ tools/seed/node_modules/
 
 # Agent worktrees
 .claude/
+/android/.kotlin/
