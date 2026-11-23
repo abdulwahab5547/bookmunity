@@ -6,12 +6,13 @@ import '../../../design/brutal_widgets.dart';
 import '../../../design/formatters.dart';
 import '../data/social_models.dart';
 import '../data/social_providers.dart';
-import 'friends_screen.dart';
 import 'my_profile_screen.dart';
+import 'reader_profile.dart';
 import 'user_avatar.dart';
 
-/// Public profile of any reader. Friends also see recent activity (the
-/// rules only let friends read it); others get an "Add friend" action.
+/// Public profile of any reader: shelves, ratings, quotes, updates and
+/// badges. Friends also see friends-only posts; others get an "Add friend"
+/// action.
 class FriendProfileScreen extends ConsumerWidget {
   const FriendProfileScreen({required this.uid, super.key});
 
@@ -25,7 +26,6 @@ class FriendProfileScreen extends ConsumerWidget {
     final profile = ref.watch(profileProvider(uid));
     final friends = ref.watch(friendsProvider).valueOrNull ?? const <Friend>[];
     final isFriend = friends.any((friend) => friend.uid == uid);
-    final theme = Theme.of(context);
     return Scaffold(
       appBar: BrutalAppBar(
         title: profile.valueOrNull?.displayName ?? 'Reader',
@@ -53,30 +53,11 @@ class FriendProfileScreen extends ConsumerWidget {
               title: 'This profile no longer exists',
             );
           }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              ProfileHeader(profile: value),
-              const SizedBox(height: 16),
-              if (!isFriend && me != null) ...[
-                _FriendAction(me: me, other: value),
-                const SizedBox(height: 16),
-              ],
-              ProfileStatsRow(profile: value),
-              const SizedBox(height: 24),
-              const SectionLabel('Recent activity'),
-              if (isFriend)
-                _Activity(uid: uid, name: value.displayName)
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(
-                    'Become friends with ${value.displayName} to see what '
-                    'they are reading.',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-            ],
+          return ReaderProfileView(
+            profile: value,
+            action: !isFriend && me != null
+                ? _FriendAction(me: me, other: value)
+                : null,
           );
         },
       ),
@@ -92,7 +73,8 @@ class FriendProfileScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: Text('Remove $name?'),
         content: const Text(
-          'You will no longer see each other’s activity. You can send a new '
+          'You will no longer see each other’s friends-only posts. You can '
+          'send a new '
           'request later.',
         ),
         actions: [
@@ -116,38 +98,6 @@ class FriendProfileScreen extends ConsumerWidget {
         SnackBar(content: Text(socialErrorMessage(error))),
       );
     }
-  }
-}
-
-class _Activity extends ConsumerWidget {
-  const _Activity({required this.uid, required this.name});
-
-  final String uid;
-  final String name;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    return ref
-        .watch(friendActivityProvider(uid))
-        .when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (error, _) => Text(socialErrorMessage(error)),
-          data: (items) => items.isEmpty
-              ? Text(
-                  'No shared activity yet.',
-                  style: theme.textTheme.bodySmall,
-                )
-              : Column(
-                  children: [
-                    for (final item in items)
-                      ActivityTile(activity: item, name: name),
-                  ],
-                ),
-        );
   }
 }
 
@@ -243,52 +193,6 @@ class ProfileHeader extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class ProfileStatsRow extends StatelessWidget {
-  const ProfileStatsRow({required this.profile, super.key});
-
-  final Profile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _Stat(label: 'Books finished', value: profile.booksFinished),
-        const SizedBox(width: 10),
-        _Stat(label: 'Day streak', value: profile.currentStreak),
-        const SizedBox(width: 10),
-        _Stat(label: 'Badges', value: profile.badgeCount),
-      ],
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value});
-
-  final String label;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Expanded(
-      child: BrutalCard(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: Column(
-          children: [
-            Text('$value', style: theme.textTheme.titleLarge),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

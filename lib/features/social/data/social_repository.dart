@@ -45,8 +45,6 @@ class SocialRepository {
       _db.collection('friendRequests');
   CollectionReference<Map<String, dynamic>> _friendsOf(String owner) =>
       _db.collection('users').doc(owner).collection('friends');
-  CollectionReference<Map<String, dynamic>> _activityOf(String owner) =>
-      _db.collection('users').doc(owner).collection('activity');
   CollectionReference<Map<String, dynamic>> _reviewsOf(String bookKey) =>
       _db.collection('books').doc(reviewDocKey(bookKey)).collection('reviews');
 
@@ -277,52 +275,6 @@ class SocialRepository {
       ..delete(_friendsOf(uid).doc(friendUid))
       ..delete(_friendsOf(friendUid).doc(uid));
     return batch.commit();
-  }
-
-  // ----------------------------------------------------------- activity
-
-  Future<void> postActivity({
-    required ActivityType type,
-    String title = '',
-    String author = '',
-    String bookKey = '',
-    String badgeId = '',
-    String badgeTitle = '',
-    int rating = 0,
-  }) => _activityOf(uid).add({
-    'type': type.name,
-    'title': clipTitle(title),
-    'author': clipTitle(author),
-    'bookKey': clipTitle(bookKey),
-    'badgeId': badgeId.length > 60 ? badgeId.substring(0, 60) : badgeId,
-    'badgeTitle': badgeTitle.length > 60
-        ? badgeTitle.substring(0, 60)
-        : badgeTitle,
-    'rating': rating.clamp(0, 5),
-    'createdAt': FieldValue.serverTimestamp(),
-  });
-
-  Future<List<Activity>> activityOf(String owner, {int limit = 20}) async {
-    final result = await _activityOf(
-      owner,
-    ).orderBy('createdAt', descending: true).limit(limit).get();
-    return result.docs.map((doc) => Activity.fromDoc(owner, doc)).toList();
-  }
-
-  /// Recent activity across friends, newest first.
-  Future<List<Activity>> feed(List<Friend> friends) async {
-    final lists = await Future.wait(
-      friends.map(
-        (friend) => activityOf(friend.uid, limit: 10).catchError(
-          // A friend who removed us mid-load is no longer readable.
-          (_) => <Activity>[],
-        ),
-      ),
-    );
-    return lists.expand((items) => items).toList()..sort(
-      (a, b) =>
-          (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
-    );
   }
 
   // ------------------------------------------------------------ reviews

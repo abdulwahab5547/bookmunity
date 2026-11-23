@@ -16,10 +16,17 @@ class SelectionToolbar extends StatelessWidget {
     required this.onSearch,
     required this.onDefine,
     required this.onClose,
+    this.bookId,
+    this.bookLanguage,
     super.key,
   });
 
   final ReaderSelection selection;
+
+  /// Used to pick the dictionary: the passage's language wins over the
+  /// book's (EPUB dc:language).
+  final int? bookId;
+  final String? bookLanguage;
   final ValueChanged<int> onHighlight;
   final VoidCallback onNote;
   final VoidCallback onCopy;
@@ -30,7 +37,7 @@ class SelectionToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final word = selection.singleWord;
+    final word = selection.lookupText;
     return Material(
       color: theme.colorScheme.surfaceContainerLow,
       elevation: 6,
@@ -49,7 +56,11 @@ class SelectionToolbar extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: DictionaryPreview(
-                  word: word,
+                  query: (
+                    word: word,
+                    bookId: bookId,
+                    language: selection.language ?? bookLanguage,
+                  ),
                   onMore: () => onDefine(word),
                 ),
               )
@@ -276,7 +287,8 @@ class _NoteDialogState extends State<_NoteDialog> {
   }
 }
 
-/// Sheet for an existing highlight: recolour, edit note, define, delete.
+/// Sheet for an existing highlight: recolour, edit note, define, share as
+/// a Community quote ([onShare], when available), delete.
 Future<void> showHighlightSheet(
   BuildContext context, {
   required Highlight highlight,
@@ -284,12 +296,13 @@ Future<void> showHighlightSheet(
   required VoidCallback onEditNote,
   required VoidCallback onDelete,
   required ValueChanged<String> onDefine,
+  VoidCallback? onShare,
 }) {
   final word = ReaderSelection(
     cfiRange: highlight.cfiRange,
     text: highlight.selectedText,
     chapterTitle: '',
-  ).singleWord;
+  ).lookupText;
   return showModalBottomSheet<void>(
     context: context,
     builder: (context) {
@@ -364,6 +377,15 @@ Future<void> showHighlightSheet(
                       onEditNote();
                     },
                   ),
+                  if (onShare != null)
+                    IconButton(
+                      tooltip: 'Share as quote',
+                      icon: const Icon(Icons.format_quote_outlined),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        onShare();
+                      },
+                    ),
                   IconButton(
                     tooltip: 'Delete highlight',
                     icon: const Icon(Icons.delete_outline),

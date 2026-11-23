@@ -15,7 +15,11 @@ Widget _panel(ReaderSelection selection, double width) {
   return ProviderScope(
     overrides: [
       definitionProvider.overrideWith(
-        (ref, word) async => DictionaryFound(DictionaryEntry.parse(_body)!),
+        (ref, query) async => DictionaryFound(
+          query: query.word,
+          source: DictionarySource.wordnet,
+          entries: [DictionaryEntry.parse(_body)!],
+        ),
       ),
     ],
     child: MaterialApp(

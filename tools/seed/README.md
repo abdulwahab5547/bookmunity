@@ -1,8 +1,11 @@
 # Sample readers for Bookmunity
 
 `seed.mjs` creates 10 sample readers with cute avatars, bios, reading stats,
-activity, friendships among themselves and 21 book reviews, so the Friends tab
-and book reviews have something to show while testing.
+public bookshelves (with Project Gutenberg covers), badges, friendships among
+themselves, book reviews and ratings, and about 100 Community posts of every
+kind (started, finished, want to read, halfway, reviews, ratings, quotes,
+badges) with ~300 reactions and threaded comments, so the Community tab,
+reader profiles and book pages have something to show while testing.
 
 It uses the normal Firebase client SDK (no admin key): each sample reader is a
 real Email/Password account, and every write goes through `firestore.rules`
@@ -46,8 +49,18 @@ node seed.mjs seed --friend your_username
 node seed.mjs accept --friend your_username
 ```
 
-Re-running is safe: accounts, profiles, friendships and activity are reused,
-profiles and reviews are refreshed.
+With `--friend`, the sample friends also mention you in comments on their
+posts, and react to and comment on up to 5 of your public posts (post
+something first, e.g. rate a book). With `TESTER_EMAIL`/`TESTER_PASSWORD`
+you also react and reply to those mentions.
+
+Re-running is safe: accounts, profiles, friendships, posts, reactions and
+comments are reused (fixed ids, never duplicated); profiles, reviews, post
+texts, shelves and badges are refreshed.
+
+Shelves and badges (`users/{uid}/library`, `users/{uid}/badges`) use the
+sync feature's rules; if those are not deployed yet the script warns and
+skips them.
 
 Sample accounts sign in as `<username>@seed.bookmunity.app` with password
 `bookmunity-seed` (override with `SEED_PASSWORD`), so you can also log in as
@@ -57,10 +70,26 @@ Add `--emulator` to target the local emulators
 (`firebase emulators:start --only auth,firestore --project demo-bookmunity`,
 needs Java 21+).
 
+## Checking the Community rules
+
+```bash
+node seed.mjs seed --emulator
+node check-community.mjs --emulator
+```
+
+`check-community.mjs` (emulator only) runs feed queries, aggregates,
+reactions, comments, replies and deletes through the rules, tries ~20
+forgeries that must be denied (fake authors, reacting as someone else,
+inflating counters, deleting other people's comments, reading friends-only
+posts as a stranger, ...), and finally checks that every readable post's
+counters equal its actual reaction and comment documents.
+
 ## Books with sample reviews
 
-Reviews attach to a book by title and author, so they appear once you import
-these Project Gutenberg EPUBs (download, then import in the app):
+Reviews attach to a book by title and author, so they appear on the book's
+screen once you import these Project Gutenberg EPUBs (download, then import
+in the app). Book pages opened from the Community tab or a shelf show them
+without importing anything:
 
 | Book | EPUB |
 |---|---|
@@ -74,5 +103,6 @@ these Project Gutenberg EPUBs (download, then import in the app):
 ## Removing sample data
 
 Sample accounts can be deleted in *Authentication → Users* (filter by
-`seed.bookmunity.app`); their profiles, usernames and reviews are removed in
-the Firestore console.
+`seed.bookmunity.app`); their profiles, usernames, reviews, `users/{uid}`
+data and posts (ids start with their uid) are removed in the Firestore
+console.

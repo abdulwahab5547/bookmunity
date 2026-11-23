@@ -1027,6 +1027,23 @@
     attachGestures(contents);
   }
 
+  // The language of an explicitly marked passage (a lang or xml:lang
+  // attribute below <html>), so a French quotation in an English book is
+  // looked up in French. The document root is skipped: templates often
+  // carry a wrong default there, and the book's dc:language is better.
+  function passageLanguage(range) {
+    var node = range.commonAncestorContainer;
+    if (node && node.nodeType !== 1) node = node.parentNode;
+    var root = node && node.ownerDocument && node.ownerDocument.documentElement;
+    while (node && node.nodeType === 1 && node !== root) {
+      var lang = node.getAttribute("lang") ||
+        node.getAttributeNS("http://www.w3.org/XML/1998/namespace", "lang");
+      if (lang) return lang;
+      node = node.parentNode;
+    }
+    return "";
+  }
+
   function onSelected(cfiRange, contents) {
     var range;
     try {
@@ -1043,6 +1060,7 @@
     send("selected", {
       cfiRange: cfiRange,
       text: text,
+      lang: passageLanguage(range),
       chapterTitle: lastLocation && lastLocation.start ? chapterTitleForLocation(lastLocation.start) : "",
       rect: {
         left: rect.left + frameRect.left,
@@ -1215,6 +1233,9 @@
     book.opened.catch(function (error) {
       send("error", {message: "This book could not be opened: " + String(error && error.message || error)});
     });
+    book.loaded.metadata.then(function (metadata) {
+      send("metadata", {language: (metadata && metadata.language) || ""});
+    }).catch(function () { /* metadata is optional */ });
     book.loaded.navigation.then(function (navigation) {
       tocByHref = {};
       tocItems = flattenToc(navigation.toc, 0, []);

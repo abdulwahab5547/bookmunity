@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../design/brutal_theme.dart';
 import '../../../design/brutal_widgets.dart';
-import '../../../design/formatters.dart';
 import '../data/social_models.dart';
 import '../data/social_providers.dart';
 import 'choose_username_screen.dart';
@@ -60,7 +59,7 @@ class _FriendsHome extends ConsumerWidget {
     final incoming =
         ref.watch(incomingRequestsProvider).valueOrNull ?? const [];
     return DefaultTabController(
-      length: 3,
+      length: 2,
       child: Scaffold(
         appBar: BrutalAppBar(
           title: 'Friends',
@@ -80,7 +79,6 @@ class _FriendsHome extends ConsumerWidget {
           ],
           bottom: TabBar(
             tabs: [
-              const Tab(text: 'Activity'),
               const Tab(text: 'Friends'),
               Tab(
                 child: Badge(
@@ -94,145 +92,10 @@ class _FriendsHome extends ConsumerWidget {
         ),
         body: TabBarView(
           children: [
-            const _FeedTab(),
             _FriendsTab(me: me),
             _RequestsTab(me: me),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _FeedTab extends ConsumerWidget {
-  const _FeedTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final feed = ref.watch(friendFeedProvider);
-    return RefreshIndicator(
-      onRefresh: () => ref.refresh(friendFeedProvider.future),
-      child: feed.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ListView(
-          children: [
-            EmptyState(
-              icon: Icons.cloud_off_outlined,
-              title: 'Activity could not be loaded',
-              message: socialErrorMessage(error),
-            ),
-          ],
-        ),
-        data: (items) => items.isEmpty
-            ? ListView(
-                children: const [
-                  EmptyState(
-                    icon: Icons.dynamic_feed_outlined,
-                    title: 'Nothing here yet',
-                    message:
-                        'When your friends start or finish books, earn badges '
-                        'or write reviews, it shows up here.',
-                  ),
-                ],
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: items.length,
-                separatorBuilder: (_, _) =>
-                    const Divider(indent: 72, endIndent: 16),
-                itemBuilder: (context, index) => ActivityTile(
-                  activity: items[index],
-                  name: _nameFor(ref, items[index].ownerUid),
-                ),
-              ),
-      ),
-    );
-  }
-
-  String _nameFor(WidgetRef ref, String uid) {
-    final friends = ref.watch(friendsProvider).valueOrNull ?? const [];
-    for (final friend in friends) {
-      if (friend.uid == uid) return friend.displayName;
-    }
-    return 'A friend';
-  }
-}
-
-class ActivityTile extends StatelessWidget {
-  const ActivityTile({required this.activity, required this.name, super.key});
-
-  final Activity activity;
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final (icon, color, text) = switch (activity.type) {
-      ActivityType.started => (
-        Icons.menu_book_outlined,
-        BrutalColors.blue,
-        'started reading ${activity.title}',
-      ),
-      ActivityType.finished => (
-        Icons.check_circle_outline,
-        BrutalColors.green,
-        'finished ${activity.title}',
-      ),
-      ActivityType.badge => (
-        Icons.emoji_events_outlined,
-        BrutalColors.yellow,
-        'earned the ${activity.badgeTitle} badge',
-      ),
-      ActivityType.review => (
-        Icons.star_outline,
-        BrutalColors.pink,
-        'rated ${activity.title} ${'★' * activity.rating}',
-      ),
-    };
-    return ListTile(
-      leading: SizedBox.square(
-        dimension: 44,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            UserAvatar(uid: activity.ownerUid, size: 40),
-            Positioned(
-              right: -2,
-              bottom: -2,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: theme.colorScheme.surface,
-                    width: 1.5,
-                  ),
-                ),
-                child: Icon(icon, size: 12, color: BrutalColors.ink),
-              ),
-            ),
-          ],
-        ),
-      ),
-      title: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: name,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            TextSpan(text: ' $text'),
-          ],
-        ),
-      ),
-      subtitle: Text(
-        [
-          if (activity.author.isNotEmpty && activity.type != ActivityType.badge)
-            activity.author,
-          if (activity.createdAt != null) formatDate(activity.createdAt!),
-        ].join(' · '),
-        style: theme.textTheme.bodySmall,
       ),
     );
   }

@@ -119,6 +119,7 @@ class ReaderSelection {
     required this.cfiRange,
     required this.text,
     required this.chapterTitle,
+    this.language,
   });
 
   factory ReaderSelection.fromJson(Map<String, dynamic> json) =>
@@ -126,11 +127,17 @@ class ReaderSelection {
         cfiRange: _string(json['cfiRange']),
         text: _string(json['text']).trim(),
         chapterTitle: _string(json['chapterTitle']),
+        language: _string(json['lang']).trim().isEmpty
+            ? null
+            : _string(json['lang']).trim(),
       );
 
   final String cfiRange;
   final String text;
   final String chapterTitle;
+
+  /// Language tag of an explicitly marked passage, if any.
+  final String? language;
 
   static final _wordPattern = RegExp(r"^[\p{L}][\p{L}'’\-]*$", unicode: true);
 
@@ -143,6 +150,34 @@ class ReaderSelection {
     if (stripped.isEmpty || stripped.length > 40) return null;
     return _wordPattern.hasMatch(stripped) ? stripped : null;
   }
+
+  /// A word or a short phrase (up to four words) worth a dictionary lookup,
+  /// such as "look up" or "ad hoc", or null for longer passages.
+  String? get lookupText {
+    final word = singleWord;
+    if (word != null) return word;
+    final stripped = text
+        .replaceAll(RegExp(r"^[^\p{L}]+|[^\p{L}]+$", unicode: true), '')
+        .replaceAll(RegExp(r'\s+'), ' ');
+    final words = stripped.split(' ');
+    if (words.length < 2 || words.length > 4 || stripped.length > 48) {
+      return null;
+    }
+    return words.every(_wordPattern.hasMatch) ? stripped : null;
+  }
+}
+
+/// Book details sent once the EPUB package is read.
+class ReaderMetadata {
+  const ReaderMetadata({required this.language});
+
+  factory ReaderMetadata.fromJson(Map<String, dynamic> json) {
+    final language = _string(json['language']).trim();
+    return ReaderMetadata(language: language.isEmpty ? null : language);
+  }
+
+  /// The EPUB's dc:language tag, e.g. "fr" or "en-GB".
+  final String? language;
 }
 
 class SearchResult {
