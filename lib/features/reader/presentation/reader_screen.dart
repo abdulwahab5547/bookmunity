@@ -14,6 +14,7 @@ import '../../../design/brutal_widgets.dart';
 import '../../../providers/app_providers.dart';
 import '../../../providers/settings_providers.dart';
 import '../../achievements/data/achievement_service.dart';
+import '../../dictionary/dictionary_providers.dart' show packStoreProvider;
 import '../../dictionary/dictionary_view.dart';
 import '../../social/data/social_providers.dart';
 import '../data/reader_bridge.dart';
@@ -57,6 +58,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   ReaderLocation? _location;
   List<TocItem> _toc = const [];
   ReaderSelection? _selection;
+
+  /// The EPUB's dc:language, for dictionary lookups.
+  String? _bookLanguage;
   bool _chromeVisible = false;
   double? _scrubValue;
 
@@ -222,6 +226,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       case 'ready':
         setState(() => _ready = true);
         _tracker.resume(DateTime.now(), percent: _percent);
+        // Unpack the bundled dictionary now so the first lookup is instant.
+        unawaited(
+          ref
+              .read(packStoreProvider.future)
+              .then((store) => store.english())
+              .then((_) {}, onError: (Object _) {}),
+        );
+      case 'metadata':
+        _bookLanguage = ReaderMetadata.fromJson(payload).language;
       case 'relocated':
         final location = ReaderLocation.fromJson(payload);
         setState(() {
@@ -464,7 +477,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _highlights.remove(highlight.id);
         await _send('removeHighlight', {'cfiRange': highlight.cfiRange});
       },
-      onDefine: (word) => showDictionarySheet(context, word),
+      onDefine: (word) => showDictionarySheet(context, (
+        word: word,
+        bookId: _book.id,
+        language: _bookLanguage,
+      )),
     );
   }
 
@@ -603,8 +620,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     _clearSelection();
                                     _openSearch(text);
                                   },
+                                  bookId: _book.id,
+                                  bookLanguage: _bookLanguage,
                                   onDefine: (word) =>
-                                      showDictionarySheet(context, word),
+                                      showDictionarySheet(context, (
+                                        word: word,
+                                        bookId: _book.id,
+                                        language:
+                                            _selection?.language ??
+                                            _bookLanguage,
+                                      )),
                                   onClose: _clearSelection,
                                 ),
                               ),

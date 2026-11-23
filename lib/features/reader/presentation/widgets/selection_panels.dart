@@ -16,10 +16,17 @@ class SelectionToolbar extends StatelessWidget {
     required this.onSearch,
     required this.onDefine,
     required this.onClose,
+    this.bookId,
+    this.bookLanguage,
     super.key,
   });
 
   final ReaderSelection selection;
+
+  /// Used to pick the dictionary: the passage's language wins over the
+  /// book's (EPUB dc:language).
+  final int? bookId;
+  final String? bookLanguage;
   final ValueChanged<int> onHighlight;
   final VoidCallback onNote;
   final VoidCallback onCopy;
@@ -30,7 +37,7 @@ class SelectionToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final word = selection.singleWord;
+    final word = selection.lookupText;
     return Material(
       color: theme.colorScheme.surfaceContainerLow,
       elevation: 6,
@@ -49,7 +56,11 @@ class SelectionToolbar extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: DictionaryPreview(
-                  word: word,
+                  query: (
+                    word: word,
+                    bookId: bookId,
+                    language: selection.language ?? bookLanguage,
+                  ),
                   onMore: () => onDefine(word),
                 ),
               )
@@ -289,7 +300,7 @@ Future<void> showHighlightSheet(
     cfiRange: highlight.cfiRange,
     text: highlight.selectedText,
     chapterTitle: '',
-  ).singleWord;
+  ).lookupText;
   return showModalBottomSheet<void>(
     context: context,
     builder: (context) {

@@ -8,7 +8,8 @@ JavaScript sends `{event, payload}` through the `readerEvent` handler:
 
 - `ready`
 - `relocated` with `cfi`, `percentage`, `chapterHref`, `chapterTitle`, `page`, and `totalPages`
-- `selected` with `cfiRange`, `text`, and `rect`
+- `metadata` with `language` (the EPUB's `dc:language`, used to pick the dictionary)
+- `selected` with `cfiRange`, `text`, `rect`, and `lang` (a `lang`/`xml:lang` set on the passage below `<html>`, or empty)
 - `locationsReady`
 - `error`
 
