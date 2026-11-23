@@ -58,9 +58,9 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
   late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
     'file_path',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _fileHashMeta = const VerificationMeta(
     'fileHash',
@@ -69,9 +69,9 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
   late final GeneratedColumn<String> fileHash = GeneratedColumn<String>(
     'file_hash',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _bookKeyMeta = const VerificationMeta(
@@ -209,6 +209,58 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _changedAtMeta = const VerificationMeta(
+    'changedAt',
+  );
+  @override
+  late final GeneratedColumn<int> changedAt = GeneratedColumn<int>(
+    'changed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _stateChangedAtMeta = const VerificationMeta(
+    'stateChangedAt',
+  );
+  @override
+  late final GeneratedColumn<int> stateChangedAt = GeneratedColumn<int>(
+    'state_changed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -229,6 +281,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     genre,
     locationsJson,
     sourceUrl,
+    changedAt,
+    stateChangedAt,
+    dirty,
+    deleted,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -270,16 +326,12 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
         _filePathMeta,
         filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
       );
-    } else if (isInserting) {
-      context.missing(_filePathMeta);
     }
     if (data.containsKey('file_hash')) {
       context.handle(
         _fileHashMeta,
         fileHash.isAcceptableOrUnknown(data['file_hash']!, _fileHashMeta),
       );
-    } else if (isInserting) {
-      context.missing(_fileHashMeta);
     }
     if (data.containsKey('book_key')) {
       context.handle(
@@ -367,6 +419,33 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
         sourceUrl.isAcceptableOrUnknown(data['source_url']!, _sourceUrlMeta),
       );
     }
+    if (data.containsKey('changed_at')) {
+      context.handle(
+        _changedAtMeta,
+        changedAt.isAcceptableOrUnknown(data['changed_at']!, _changedAtMeta),
+      );
+    }
+    if (data.containsKey('state_changed_at')) {
+      context.handle(
+        _stateChangedAtMeta,
+        stateChangedAt.isAcceptableOrUnknown(
+          data['state_changed_at']!,
+          _stateChangedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     return context;
   }
 
@@ -395,11 +474,11 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
       filePath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}file_path'],
-      )!,
+      ),
       fileHash: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}file_hash'],
-      )!,
+      ),
       bookKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}book_key'],
@@ -448,6 +527,22 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
         DriftSqlType.string,
         data['${effectivePrefix}source_url'],
       ),
+      changedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}changed_at'],
+      )!,
+      stateChangedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}state_changed_at'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
     );
   }
 
@@ -462,8 +557,14 @@ class Book extends DataClass implements Insertable<Book> {
   final String title;
   final String author;
   final String? coverPath;
-  final String filePath;
-  final String fileHash;
+
+  /// Null when the EPUB is not on this device (restored from the cloud, or
+  /// the file was removed). The row keeps its progress, highlights and notes.
+  final String? filePath;
+
+  /// SHA-256 of the EPUB. Known for restored books too, so a file already on
+  /// disk (shared by hash between accounts) is re-attached automatically.
+  final String? fileHash;
   final String bookKey;
   final String shelf;
   final DateTime addedAt;
@@ -480,13 +581,21 @@ class Book extends DataClass implements Insertable<Book> {
   /// fetched again after a reinstall. Null for books imported from the
   /// device.
   final String? sourceUrl;
+
+  /// Library fields (shelf, progress, title, ...): `users/{uid}/library`.
+  final int changedAt;
+
+  /// Reading position (lastCfi, totalLocations): `users/{uid}/readingState`.
+  final int stateChangedAt;
+  final bool dirty;
+  final bool deleted;
   const Book({
     required this.id,
     required this.title,
     required this.author,
     this.coverPath,
-    required this.filePath,
-    required this.fileHash,
+    this.filePath,
+    this.fileHash,
     required this.bookKey,
     required this.shelf,
     required this.addedAt,
@@ -499,6 +608,10 @@ class Book extends DataClass implements Insertable<Book> {
     this.genre,
     this.locationsJson,
     this.sourceUrl,
+    required this.changedAt,
+    required this.stateChangedAt,
+    required this.dirty,
+    required this.deleted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -509,8 +622,12 @@ class Book extends DataClass implements Insertable<Book> {
     if (!nullToAbsent || coverPath != null) {
       map['cover_path'] = Variable<String>(coverPath);
     }
-    map['file_path'] = Variable<String>(filePath);
-    map['file_hash'] = Variable<String>(fileHash);
+    if (!nullToAbsent || filePath != null) {
+      map['file_path'] = Variable<String>(filePath);
+    }
+    if (!nullToAbsent || fileHash != null) {
+      map['file_hash'] = Variable<String>(fileHash);
+    }
     map['book_key'] = Variable<String>(bookKey);
     map['shelf'] = Variable<String>(shelf);
     map['added_at'] = Variable<DateTime>(addedAt);
@@ -537,6 +654,10 @@ class Book extends DataClass implements Insertable<Book> {
     if (!nullToAbsent || sourceUrl != null) {
       map['source_url'] = Variable<String>(sourceUrl);
     }
+    map['changed_at'] = Variable<int>(changedAt);
+    map['state_changed_at'] = Variable<int>(stateChangedAt);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
@@ -548,8 +669,12 @@ class Book extends DataClass implements Insertable<Book> {
       coverPath: coverPath == null && nullToAbsent
           ? const Value.absent()
           : Value(coverPath),
-      filePath: Value(filePath),
-      fileHash: Value(fileHash),
+      filePath: filePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(filePath),
+      fileHash: fileHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fileHash),
       bookKey: Value(bookKey),
       shelf: Value(shelf),
       addedAt: Value(addedAt),
@@ -576,6 +701,10 @@ class Book extends DataClass implements Insertable<Book> {
       sourceUrl: sourceUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(sourceUrl),
+      changedAt: Value(changedAt),
+      stateChangedAt: Value(stateChangedAt),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
     );
   }
 
@@ -589,8 +718,8 @@ class Book extends DataClass implements Insertable<Book> {
       title: serializer.fromJson<String>(json['title']),
       author: serializer.fromJson<String>(json['author']),
       coverPath: serializer.fromJson<String?>(json['coverPath']),
-      filePath: serializer.fromJson<String>(json['filePath']),
-      fileHash: serializer.fromJson<String>(json['fileHash']),
+      filePath: serializer.fromJson<String?>(json['filePath']),
+      fileHash: serializer.fromJson<String?>(json['fileHash']),
       bookKey: serializer.fromJson<String>(json['bookKey']),
       shelf: serializer.fromJson<String>(json['shelf']),
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
@@ -603,6 +732,10 @@ class Book extends DataClass implements Insertable<Book> {
       genre: serializer.fromJson<String?>(json['genre']),
       locationsJson: serializer.fromJson<String?>(json['locationsJson']),
       sourceUrl: serializer.fromJson<String?>(json['sourceUrl']),
+      changedAt: serializer.fromJson<int>(json['changedAt']),
+      stateChangedAt: serializer.fromJson<int>(json['stateChangedAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
   @override
@@ -613,8 +746,8 @@ class Book extends DataClass implements Insertable<Book> {
       'title': serializer.toJson<String>(title),
       'author': serializer.toJson<String>(author),
       'coverPath': serializer.toJson<String?>(coverPath),
-      'filePath': serializer.toJson<String>(filePath),
-      'fileHash': serializer.toJson<String>(fileHash),
+      'filePath': serializer.toJson<String?>(filePath),
+      'fileHash': serializer.toJson<String?>(fileHash),
       'bookKey': serializer.toJson<String>(bookKey),
       'shelf': serializer.toJson<String>(shelf),
       'addedAt': serializer.toJson<DateTime>(addedAt),
@@ -627,6 +760,10 @@ class Book extends DataClass implements Insertable<Book> {
       'genre': serializer.toJson<String?>(genre),
       'locationsJson': serializer.toJson<String?>(locationsJson),
       'sourceUrl': serializer.toJson<String?>(sourceUrl),
+      'changedAt': serializer.toJson<int>(changedAt),
+      'stateChangedAt': serializer.toJson<int>(stateChangedAt),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
@@ -635,8 +772,8 @@ class Book extends DataClass implements Insertable<Book> {
     String? title,
     String? author,
     Value<String?> coverPath = const Value.absent(),
-    String? filePath,
-    String? fileHash,
+    Value<String?> filePath = const Value.absent(),
+    Value<String?> fileHash = const Value.absent(),
     String? bookKey,
     String? shelf,
     DateTime? addedAt,
@@ -649,13 +786,17 @@ class Book extends DataClass implements Insertable<Book> {
     Value<String?> genre = const Value.absent(),
     Value<String?> locationsJson = const Value.absent(),
     Value<String?> sourceUrl = const Value.absent(),
+    int? changedAt,
+    int? stateChangedAt,
+    bool? dirty,
+    bool? deleted,
   }) => Book(
     id: id ?? this.id,
     title: title ?? this.title,
     author: author ?? this.author,
     coverPath: coverPath.present ? coverPath.value : this.coverPath,
-    filePath: filePath ?? this.filePath,
-    fileHash: fileHash ?? this.fileHash,
+    filePath: filePath.present ? filePath.value : this.filePath,
+    fileHash: fileHash.present ? fileHash.value : this.fileHash,
     bookKey: bookKey ?? this.bookKey,
     shelf: shelf ?? this.shelf,
     addedAt: addedAt ?? this.addedAt,
@@ -672,6 +813,10 @@ class Book extends DataClass implements Insertable<Book> {
         ? locationsJson.value
         : this.locationsJson,
     sourceUrl: sourceUrl.present ? sourceUrl.value : this.sourceUrl,
+    changedAt: changedAt ?? this.changedAt,
+    stateChangedAt: stateChangedAt ?? this.stateChangedAt,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
   );
   Book copyWithCompanion(BooksCompanion data) {
     return Book(
@@ -705,6 +850,12 @@ class Book extends DataClass implements Insertable<Book> {
           ? data.locationsJson.value
           : this.locationsJson,
       sourceUrl: data.sourceUrl.present ? data.sourceUrl.value : this.sourceUrl,
+      changedAt: data.changedAt.present ? data.changedAt.value : this.changedAt,
+      stateChangedAt: data.stateChangedAt.present
+          ? data.stateChangedAt.value
+          : this.stateChangedAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
 
@@ -728,13 +879,17 @@ class Book extends DataClass implements Insertable<Book> {
           ..write('finishedAt: $finishedAt, ')
           ..write('genre: $genre, ')
           ..write('locationsJson: $locationsJson, ')
-          ..write('sourceUrl: $sourceUrl')
+          ..write('sourceUrl: $sourceUrl, ')
+          ..write('changedAt: $changedAt, ')
+          ..write('stateChangedAt: $stateChangedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     title,
     author,
@@ -753,7 +908,11 @@ class Book extends DataClass implements Insertable<Book> {
     genre,
     locationsJson,
     sourceUrl,
-  );
+    changedAt,
+    stateChangedAt,
+    dirty,
+    deleted,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -775,7 +934,11 @@ class Book extends DataClass implements Insertable<Book> {
           other.finishedAt == this.finishedAt &&
           other.genre == this.genre &&
           other.locationsJson == this.locationsJson &&
-          other.sourceUrl == this.sourceUrl);
+          other.sourceUrl == this.sourceUrl &&
+          other.changedAt == this.changedAt &&
+          other.stateChangedAt == this.stateChangedAt &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted);
 }
 
 class BooksCompanion extends UpdateCompanion<Book> {
@@ -783,8 +946,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
   final Value<String> title;
   final Value<String> author;
   final Value<String?> coverPath;
-  final Value<String> filePath;
-  final Value<String> fileHash;
+  final Value<String?> filePath;
+  final Value<String?> fileHash;
   final Value<String> bookKey;
   final Value<String> shelf;
   final Value<DateTime> addedAt;
@@ -797,6 +960,10 @@ class BooksCompanion extends UpdateCompanion<Book> {
   final Value<String?> genre;
   final Value<String?> locationsJson;
   final Value<String?> sourceUrl;
+  final Value<int> changedAt;
+  final Value<int> stateChangedAt;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
   const BooksCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -816,14 +983,18 @@ class BooksCompanion extends UpdateCompanion<Book> {
     this.genre = const Value.absent(),
     this.locationsJson = const Value.absent(),
     this.sourceUrl = const Value.absent(),
+    this.changedAt = const Value.absent(),
+    this.stateChangedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
   });
   BooksCompanion.insert({
     this.id = const Value.absent(),
     required String title,
     this.author = const Value.absent(),
     this.coverPath = const Value.absent(),
-    required String filePath,
-    required String fileHash,
+    this.filePath = const Value.absent(),
+    this.fileHash = const Value.absent(),
     this.bookKey = const Value.absent(),
     this.shelf = const Value.absent(),
     required DateTime addedAt,
@@ -836,9 +1007,11 @@ class BooksCompanion extends UpdateCompanion<Book> {
     this.genre = const Value.absent(),
     this.locationsJson = const Value.absent(),
     this.sourceUrl = const Value.absent(),
+    this.changedAt = const Value.absent(),
+    this.stateChangedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
   }) : title = Value(title),
-       filePath = Value(filePath),
-       fileHash = Value(fileHash),
        addedAt = Value(addedAt);
   static Insertable<Book> custom({
     Expression<int>? id,
@@ -859,6 +1032,10 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Expression<String>? genre,
     Expression<String>? locationsJson,
     Expression<String>? sourceUrl,
+    Expression<int>? changedAt,
+    Expression<int>? stateChangedAt,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -879,6 +1056,10 @@ class BooksCompanion extends UpdateCompanion<Book> {
       if (genre != null) 'genre': genre,
       if (locationsJson != null) 'locations_json': locationsJson,
       if (sourceUrl != null) 'source_url': sourceUrl,
+      if (changedAt != null) 'changed_at': changedAt,
+      if (stateChangedAt != null) 'state_changed_at': stateChangedAt,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
     });
   }
 
@@ -887,8 +1068,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Value<String>? title,
     Value<String>? author,
     Value<String?>? coverPath,
-    Value<String>? filePath,
-    Value<String>? fileHash,
+    Value<String?>? filePath,
+    Value<String?>? fileHash,
     Value<String>? bookKey,
     Value<String>? shelf,
     Value<DateTime>? addedAt,
@@ -901,6 +1082,10 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Value<String?>? genre,
     Value<String?>? locationsJson,
     Value<String?>? sourceUrl,
+    Value<int>? changedAt,
+    Value<int>? stateChangedAt,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
   }) {
     return BooksCompanion(
       id: id ?? this.id,
@@ -921,6 +1106,10 @@ class BooksCompanion extends UpdateCompanion<Book> {
       genre: genre ?? this.genre,
       locationsJson: locationsJson ?? this.locationsJson,
       sourceUrl: sourceUrl ?? this.sourceUrl,
+      changedAt: changedAt ?? this.changedAt,
+      stateChangedAt: stateChangedAt ?? this.stateChangedAt,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
     );
   }
 
@@ -981,6 +1170,18 @@ class BooksCompanion extends UpdateCompanion<Book> {
     if (sourceUrl.present) {
       map['source_url'] = Variable<String>(sourceUrl.value);
     }
+    if (changedAt.present) {
+      map['changed_at'] = Variable<int>(changedAt.value);
+    }
+    if (stateChangedAt.present) {
+      map['state_changed_at'] = Variable<int>(stateChangedAt.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     return map;
   }
 
@@ -1004,7 +1205,11 @@ class BooksCompanion extends UpdateCompanion<Book> {
           ..write('finishedAt: $finishedAt, ')
           ..write('genre: $genre, ')
           ..write('locationsJson: $locationsJson, ')
-          ..write('sourceUrl: $sourceUrl')
+          ..write('sourceUrl: $sourceUrl, ')
+          ..write('changedAt: $changedAt, ')
+          ..write('stateChangedAt: $stateChangedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
@@ -1028,6 +1233,19 @@ class $HighlightsTable extends Highlights
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'PRIMARY KEY AUTOINCREMENT',
     ),
+  );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  @override
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+    clientDefault: newRemoteId,
   );
   static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
   @override
@@ -1115,9 +1333,50 @@ class $HighlightsTable extends Highlights
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _changedAtMeta = const VerificationMeta(
+    'changedAt',
+  );
+  @override
+  late final GeneratedColumn<int> changedAt = GeneratedColumn<int>(
+    'changed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    remoteId,
     bookId,
     cfiRange,
     selectedText,
@@ -1126,6 +1385,9 @@ class $HighlightsTable extends Highlights
     chapterTitle,
     createdAt,
     updatedAt,
+    changedAt,
+    dirty,
+    deleted,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1141,6 +1403,12 @@ class $HighlightsTable extends Highlights
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
     }
     if (data.containsKey('book_id')) {
       context.handle(
@@ -1206,6 +1474,24 @@ class $HighlightsTable extends Highlights
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('changed_at')) {
+      context.handle(
+        _changedAtMeta,
+        changedAt.isAcceptableOrUnknown(data['changed_at']!, _changedAtMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     return context;
   }
 
@@ -1218,6 +1504,10 @@ class $HighlightsTable extends Highlights
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
+      )!,
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
       )!,
       bookId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -1251,6 +1541,18 @@ class $HighlightsTable extends Highlights
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      changedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}changed_at'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
     );
   }
 
@@ -1262,6 +1564,7 @@ class $HighlightsTable extends Highlights
 
 class Highlight extends DataClass implements Insertable<Highlight> {
   final int id;
+  final String remoteId;
   final int bookId;
   final String cfiRange;
   final String selectedText;
@@ -1270,8 +1573,12 @@ class Highlight extends DataClass implements Insertable<Highlight> {
   final String? chapterTitle;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final int changedAt;
+  final bool dirty;
+  final bool deleted;
   const Highlight({
     required this.id,
+    required this.remoteId,
     required this.bookId,
     required this.cfiRange,
     required this.selectedText,
@@ -1280,11 +1587,15 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     this.chapterTitle,
     required this.createdAt,
     required this.updatedAt,
+    required this.changedAt,
+    required this.dirty,
+    required this.deleted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['remote_id'] = Variable<String>(remoteId);
     map['book_id'] = Variable<int>(bookId);
     map['cfi_range'] = Variable<String>(cfiRange);
     map['selected_text'] = Variable<String>(selectedText);
@@ -1297,12 +1608,16 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['changed_at'] = Variable<int>(changedAt);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
   HighlightsCompanion toCompanion(bool nullToAbsent) {
     return HighlightsCompanion(
       id: Value(id),
+      remoteId: Value(remoteId),
       bookId: Value(bookId),
       cfiRange: Value(cfiRange),
       selectedText: Value(selectedText),
@@ -1313,6 +1628,9 @@ class Highlight extends DataClass implements Insertable<Highlight> {
           : Value(chapterTitle),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      changedAt: Value(changedAt),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
     );
   }
 
@@ -1323,6 +1641,7 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Highlight(
       id: serializer.fromJson<int>(json['id']),
+      remoteId: serializer.fromJson<String>(json['remoteId']),
       bookId: serializer.fromJson<int>(json['bookId']),
       cfiRange: serializer.fromJson<String>(json['cfiRange']),
       selectedText: serializer.fromJson<String>(json['selectedText']),
@@ -1331,6 +1650,9 @@ class Highlight extends DataClass implements Insertable<Highlight> {
       chapterTitle: serializer.fromJson<String?>(json['chapterTitle']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      changedAt: serializer.fromJson<int>(json['changedAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
   @override
@@ -1338,6 +1660,7 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'remoteId': serializer.toJson<String>(remoteId),
       'bookId': serializer.toJson<int>(bookId),
       'cfiRange': serializer.toJson<String>(cfiRange),
       'selectedText': serializer.toJson<String>(selectedText),
@@ -1346,11 +1669,15 @@ class Highlight extends DataClass implements Insertable<Highlight> {
       'chapterTitle': serializer.toJson<String?>(chapterTitle),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'changedAt': serializer.toJson<int>(changedAt),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
   Highlight copyWith({
     int? id,
+    String? remoteId,
     int? bookId,
     String? cfiRange,
     String? selectedText,
@@ -1359,8 +1686,12 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     Value<String?> chapterTitle = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? changedAt,
+    bool? dirty,
+    bool? deleted,
   }) => Highlight(
     id: id ?? this.id,
+    remoteId: remoteId ?? this.remoteId,
     bookId: bookId ?? this.bookId,
     cfiRange: cfiRange ?? this.cfiRange,
     selectedText: selectedText ?? this.selectedText,
@@ -1369,10 +1700,14 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     chapterTitle: chapterTitle.present ? chapterTitle.value : this.chapterTitle,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    changedAt: changedAt ?? this.changedAt,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
   );
   Highlight copyWithCompanion(HighlightsCompanion data) {
     return Highlight(
       id: data.id.present ? data.id.value : this.id,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       cfiRange: data.cfiRange.present ? data.cfiRange.value : this.cfiRange,
       selectedText: data.selectedText.present
@@ -1385,6 +1720,9 @@ class Highlight extends DataClass implements Insertable<Highlight> {
           : this.chapterTitle,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      changedAt: data.changedAt.present ? data.changedAt.value : this.changedAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
 
@@ -1392,6 +1730,7 @@ class Highlight extends DataClass implements Insertable<Highlight> {
   String toString() {
     return (StringBuffer('Highlight(')
           ..write('id: $id, ')
+          ..write('remoteId: $remoteId, ')
           ..write('bookId: $bookId, ')
           ..write('cfiRange: $cfiRange, ')
           ..write('selectedText: $selectedText, ')
@@ -1399,7 +1738,10 @@ class Highlight extends DataClass implements Insertable<Highlight> {
           ..write('note: $note, ')
           ..write('chapterTitle: $chapterTitle, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('changedAt: $changedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
@@ -1407,6 +1749,7 @@ class Highlight extends DataClass implements Insertable<Highlight> {
   @override
   int get hashCode => Object.hash(
     id,
+    remoteId,
     bookId,
     cfiRange,
     selectedText,
@@ -1415,12 +1758,16 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     chapterTitle,
     createdAt,
     updatedAt,
+    changedAt,
+    dirty,
+    deleted,
   );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Highlight &&
           other.id == this.id &&
+          other.remoteId == this.remoteId &&
           other.bookId == this.bookId &&
           other.cfiRange == this.cfiRange &&
           other.selectedText == this.selectedText &&
@@ -1428,11 +1775,15 @@ class Highlight extends DataClass implements Insertable<Highlight> {
           other.note == this.note &&
           other.chapterTitle == this.chapterTitle &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.changedAt == this.changedAt &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted);
 }
 
 class HighlightsCompanion extends UpdateCompanion<Highlight> {
   final Value<int> id;
+  final Value<String> remoteId;
   final Value<int> bookId;
   final Value<String> cfiRange;
   final Value<String> selectedText;
@@ -1441,8 +1792,12 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
   final Value<String?> chapterTitle;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<int> changedAt;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
   const HighlightsCompanion({
     this.id = const Value.absent(),
+    this.remoteId = const Value.absent(),
     this.bookId = const Value.absent(),
     this.cfiRange = const Value.absent(),
     this.selectedText = const Value.absent(),
@@ -1451,9 +1806,13 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     this.chapterTitle = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.changedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
   });
   HighlightsCompanion.insert({
     this.id = const Value.absent(),
+    this.remoteId = const Value.absent(),
     required int bookId,
     required String cfiRange,
     required String selectedText,
@@ -1462,6 +1821,9 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     this.chapterTitle = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.changedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
   }) : bookId = Value(bookId),
        cfiRange = Value(cfiRange),
        selectedText = Value(selectedText),
@@ -1469,6 +1831,7 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
        updatedAt = Value(updatedAt);
   static Insertable<Highlight> custom({
     Expression<int>? id,
+    Expression<String>? remoteId,
     Expression<int>? bookId,
     Expression<String>? cfiRange,
     Expression<String>? selectedText,
@@ -1477,9 +1840,13 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     Expression<String>? chapterTitle,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<int>? changedAt,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (remoteId != null) 'remote_id': remoteId,
       if (bookId != null) 'book_id': bookId,
       if (cfiRange != null) 'cfi_range': cfiRange,
       if (selectedText != null) 'selected_text': selectedText,
@@ -1488,11 +1855,15 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
       if (chapterTitle != null) 'chapter_title': chapterTitle,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (changedAt != null) 'changed_at': changedAt,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
     });
   }
 
   HighlightsCompanion copyWith({
     Value<int>? id,
+    Value<String>? remoteId,
     Value<int>? bookId,
     Value<String>? cfiRange,
     Value<String>? selectedText,
@@ -1501,9 +1872,13 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     Value<String?>? chapterTitle,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<int>? changedAt,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
   }) {
     return HighlightsCompanion(
       id: id ?? this.id,
+      remoteId: remoteId ?? this.remoteId,
       bookId: bookId ?? this.bookId,
       cfiRange: cfiRange ?? this.cfiRange,
       selectedText: selectedText ?? this.selectedText,
@@ -1512,6 +1887,9 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
       chapterTitle: chapterTitle ?? this.chapterTitle,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      changedAt: changedAt ?? this.changedAt,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
     );
   }
 
@@ -1520,6 +1898,9 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
     }
     if (bookId.present) {
       map['book_id'] = Variable<int>(bookId.value);
@@ -1545,6 +1926,15 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (changedAt.present) {
+      map['changed_at'] = Variable<int>(changedAt.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     return map;
   }
 
@@ -1552,6 +1942,7 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
   String toString() {
     return (StringBuffer('HighlightsCompanion(')
           ..write('id: $id, ')
+          ..write('remoteId: $remoteId, ')
           ..write('bookId: $bookId, ')
           ..write('cfiRange: $cfiRange, ')
           ..write('selectedText: $selectedText, ')
@@ -1559,7 +1950,10 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
           ..write('note: $note, ')
           ..write('chapterTitle: $chapterTitle, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('changedAt: $changedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
@@ -1856,6 +2250,19 @@ class $BookmarksTable extends Bookmarks
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  @override
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+    clientDefault: newRemoteId,
+  );
   static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
   @override
   late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
@@ -1909,14 +2316,58 @@ class $BookmarksTable extends Bookmarks
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _changedAtMeta = const VerificationMeta(
+    'changedAt',
+  );
+  @override
+  late final GeneratedColumn<int> changedAt = GeneratedColumn<int>(
+    'changed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    remoteId,
     bookId,
     cfi,
     label,
     percent,
     createdAt,
+    changedAt,
+    dirty,
+    deleted,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1932,6 +2383,12 @@ class $BookmarksTable extends Bookmarks
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
     }
     if (data.containsKey('book_id')) {
       context.handle(
@@ -1969,6 +2426,24 @@ class $BookmarksTable extends Bookmarks
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('changed_at')) {
+      context.handle(
+        _changedAtMeta,
+        changedAt.isAcceptableOrUnknown(data['changed_at']!, _changedAtMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     return context;
   }
 
@@ -1981,6 +2456,10 @@ class $BookmarksTable extends Bookmarks
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
+      )!,
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
       )!,
       bookId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -2002,6 +2481,18 @@ class $BookmarksTable extends Bookmarks
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      changedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}changed_at'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
     );
   }
 
@@ -2013,23 +2504,32 @@ class $BookmarksTable extends Bookmarks
 
 class Bookmark extends DataClass implements Insertable<Bookmark> {
   final int id;
+  final String remoteId;
   final int bookId;
   final String cfi;
   final String? label;
   final double percent;
   final DateTime createdAt;
+  final int changedAt;
+  final bool dirty;
+  final bool deleted;
   const Bookmark({
     required this.id,
+    required this.remoteId,
     required this.bookId,
     required this.cfi,
     this.label,
     required this.percent,
     required this.createdAt,
+    required this.changedAt,
+    required this.dirty,
+    required this.deleted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['remote_id'] = Variable<String>(remoteId);
     map['book_id'] = Variable<int>(bookId);
     map['cfi'] = Variable<String>(cfi);
     if (!nullToAbsent || label != null) {
@@ -2037,12 +2537,16 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
     }
     map['percent'] = Variable<double>(percent);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['changed_at'] = Variable<int>(changedAt);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
   BookmarksCompanion toCompanion(bool nullToAbsent) {
     return BookmarksCompanion(
       id: Value(id),
+      remoteId: Value(remoteId),
       bookId: Value(bookId),
       cfi: Value(cfi),
       label: label == null && nullToAbsent
@@ -2050,6 +2554,9 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
           : Value(label),
       percent: Value(percent),
       createdAt: Value(createdAt),
+      changedAt: Value(changedAt),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
     );
   }
 
@@ -2060,11 +2567,15 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Bookmark(
       id: serializer.fromJson<int>(json['id']),
+      remoteId: serializer.fromJson<String>(json['remoteId']),
       bookId: serializer.fromJson<int>(json['bookId']),
       cfi: serializer.fromJson<String>(json['cfi']),
       label: serializer.fromJson<String?>(json['label']),
       percent: serializer.fromJson<double>(json['percent']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      changedAt: serializer.fromJson<int>(json['changedAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
   @override
@@ -2072,37 +2583,53 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'remoteId': serializer.toJson<String>(remoteId),
       'bookId': serializer.toJson<int>(bookId),
       'cfi': serializer.toJson<String>(cfi),
       'label': serializer.toJson<String?>(label),
       'percent': serializer.toJson<double>(percent),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'changedAt': serializer.toJson<int>(changedAt),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
   Bookmark copyWith({
     int? id,
+    String? remoteId,
     int? bookId,
     String? cfi,
     Value<String?> label = const Value.absent(),
     double? percent,
     DateTime? createdAt,
+    int? changedAt,
+    bool? dirty,
+    bool? deleted,
   }) => Bookmark(
     id: id ?? this.id,
+    remoteId: remoteId ?? this.remoteId,
     bookId: bookId ?? this.bookId,
     cfi: cfi ?? this.cfi,
     label: label.present ? label.value : this.label,
     percent: percent ?? this.percent,
     createdAt: createdAt ?? this.createdAt,
+    changedAt: changedAt ?? this.changedAt,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
   );
   Bookmark copyWithCompanion(BookmarksCompanion data) {
     return Bookmark(
       id: data.id.present ? data.id.value : this.id,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       cfi: data.cfi.present ? data.cfi.value : this.cfi,
       label: data.label.present ? data.label.value : this.label,
       percent: data.percent.present ? data.percent.value : this.percent,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      changedAt: data.changedAt.present ? data.changedAt.value : this.changedAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
 
@@ -2110,87 +2637,134 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
   String toString() {
     return (StringBuffer('Bookmark(')
           ..write('id: $id, ')
+          ..write('remoteId: $remoteId, ')
           ..write('bookId: $bookId, ')
           ..write('cfi: $cfi, ')
           ..write('label: $label, ')
           ..write('percent: $percent, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('changedAt: $changedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, bookId, cfi, label, percent, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    remoteId,
+    bookId,
+    cfi,
+    label,
+    percent,
+    createdAt,
+    changedAt,
+    dirty,
+    deleted,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Bookmark &&
           other.id == this.id &&
+          other.remoteId == this.remoteId &&
           other.bookId == this.bookId &&
           other.cfi == this.cfi &&
           other.label == this.label &&
           other.percent == this.percent &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.changedAt == this.changedAt &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted);
 }
 
 class BookmarksCompanion extends UpdateCompanion<Bookmark> {
   final Value<int> id;
+  final Value<String> remoteId;
   final Value<int> bookId;
   final Value<String> cfi;
   final Value<String?> label;
   final Value<double> percent;
   final Value<DateTime> createdAt;
+  final Value<int> changedAt;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
   const BookmarksCompanion({
     this.id = const Value.absent(),
+    this.remoteId = const Value.absent(),
     this.bookId = const Value.absent(),
     this.cfi = const Value.absent(),
     this.label = const Value.absent(),
     this.percent = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.changedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
   });
   BookmarksCompanion.insert({
     this.id = const Value.absent(),
+    this.remoteId = const Value.absent(),
     required int bookId,
     required String cfi,
     this.label = const Value.absent(),
     this.percent = const Value.absent(),
     required DateTime createdAt,
+    this.changedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
   }) : bookId = Value(bookId),
        cfi = Value(cfi),
        createdAt = Value(createdAt);
   static Insertable<Bookmark> custom({
     Expression<int>? id,
+    Expression<String>? remoteId,
     Expression<int>? bookId,
     Expression<String>? cfi,
     Expression<String>? label,
     Expression<double>? percent,
     Expression<DateTime>? createdAt,
+    Expression<int>? changedAt,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (remoteId != null) 'remote_id': remoteId,
       if (bookId != null) 'book_id': bookId,
       if (cfi != null) 'cfi': cfi,
       if (label != null) 'label': label,
       if (percent != null) 'percent': percent,
       if (createdAt != null) 'created_at': createdAt,
+      if (changedAt != null) 'changed_at': changedAt,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
     });
   }
 
   BookmarksCompanion copyWith({
     Value<int>? id,
+    Value<String>? remoteId,
     Value<int>? bookId,
     Value<String>? cfi,
     Value<String?>? label,
     Value<double>? percent,
     Value<DateTime>? createdAt,
+    Value<int>? changedAt,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
   }) {
     return BookmarksCompanion(
       id: id ?? this.id,
+      remoteId: remoteId ?? this.remoteId,
       bookId: bookId ?? this.bookId,
       cfi: cfi ?? this.cfi,
       label: label ?? this.label,
       percent: percent ?? this.percent,
       createdAt: createdAt ?? this.createdAt,
+      changedAt: changedAt ?? this.changedAt,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
     );
   }
 
@@ -2199,6 +2773,9 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
     }
     if (bookId.present) {
       map['book_id'] = Variable<int>(bookId.value);
@@ -2215,6 +2792,15 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (changedAt.present) {
+      map['changed_at'] = Variable<int>(changedAt.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     return map;
   }
 
@@ -2222,11 +2808,15 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
   String toString() {
     return (StringBuffer('BookmarksCompanion(')
           ..write('id: $id, ')
+          ..write('remoteId: $remoteId, ')
           ..write('bookId: $bookId, ')
           ..write('cfi: $cfi, ')
           ..write('label: $label, ')
           ..write('percent: $percent, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('changedAt: $changedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
@@ -2251,6 +2841,19 @@ class $ReadingSessionsTable extends ReadingSessions
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  @override
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+    clientDefault: newRemoteId,
+  );
   static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
   @override
   late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
@@ -2259,6 +2862,18 @@ class $ReadingSessionsTable extends ReadingSessions
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bookKeyMeta = const VerificationMeta(
+    'bookKey',
+  );
+  @override
+  late final GeneratedColumn<String> bookKey = GeneratedColumn<String>(
+    'book_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
   );
   static const VerificationMeta _startedAtMeta = const VerificationMeta(
     'startedAt',
@@ -2317,15 +2932,31 @@ class $ReadingSessionsTable extends ReadingSessions
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    remoteId,
     bookId,
+    bookKey,
     startedAt,
     endedAt,
     durationSeconds,
     startPercent,
     endPercent,
+    dirty,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2342,6 +2973,12 @@ class $ReadingSessionsTable extends ReadingSessions
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
     if (data.containsKey('book_id')) {
       context.handle(
         _bookIdMeta,
@@ -2349,6 +2986,12 @@ class $ReadingSessionsTable extends ReadingSessions
       );
     } else if (isInserting) {
       context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('book_key')) {
+      context.handle(
+        _bookKeyMeta,
+        bookKey.isAcceptableOrUnknown(data['book_key']!, _bookKeyMeta),
+      );
     }
     if (data.containsKey('started_at')) {
       context.handle(
@@ -2392,6 +3035,12 @@ class $ReadingSessionsTable extends ReadingSessions
         endPercent.isAcceptableOrUnknown(data['end_percent']!, _endPercentMeta),
       );
     }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
     return context;
   }
 
@@ -2405,9 +3054,17 @@ class $ReadingSessionsTable extends ReadingSessions
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
+      )!,
       bookId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}book_id'],
+      )!,
+      bookKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}book_key'],
       )!,
       startedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -2429,6 +3086,10 @@ class $ReadingSessionsTable extends ReadingSessions
         DriftSqlType.double,
         data['${effectivePrefix}end_percent'],
       )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
     );
   }
 
@@ -2440,43 +3101,59 @@ class $ReadingSessionsTable extends ReadingSessions
 
 class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   final int id;
+  final String remoteId;
+
+  /// Local book id, or 0 when the book is not in this library.
   final int bookId;
+
+  /// Identity of the book across devices; filled in on insert.
+  final String bookKey;
   final DateTime startedAt;
   final DateTime endedAt;
   final int durationSeconds;
   final double startPercent;
   final double endPercent;
+  final bool dirty;
   const ReadingSession({
     required this.id,
+    required this.remoteId,
     required this.bookId,
+    required this.bookKey,
     required this.startedAt,
     required this.endedAt,
     required this.durationSeconds,
     required this.startPercent,
     required this.endPercent,
+    required this.dirty,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['remote_id'] = Variable<String>(remoteId);
     map['book_id'] = Variable<int>(bookId);
+    map['book_key'] = Variable<String>(bookKey);
     map['started_at'] = Variable<DateTime>(startedAt);
     map['ended_at'] = Variable<DateTime>(endedAt);
     map['duration_seconds'] = Variable<int>(durationSeconds);
     map['start_percent'] = Variable<double>(startPercent);
     map['end_percent'] = Variable<double>(endPercent);
+    map['dirty'] = Variable<bool>(dirty);
     return map;
   }
 
   ReadingSessionsCompanion toCompanion(bool nullToAbsent) {
     return ReadingSessionsCompanion(
       id: Value(id),
+      remoteId: Value(remoteId),
       bookId: Value(bookId),
+      bookKey: Value(bookKey),
       startedAt: Value(startedAt),
       endedAt: Value(endedAt),
       durationSeconds: Value(durationSeconds),
       startPercent: Value(startPercent),
       endPercent: Value(endPercent),
+      dirty: Value(dirty),
     );
   }
 
@@ -2487,12 +3164,15 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ReadingSession(
       id: serializer.fromJson<int>(json['id']),
+      remoteId: serializer.fromJson<String>(json['remoteId']),
       bookId: serializer.fromJson<int>(json['bookId']),
+      bookKey: serializer.fromJson<String>(json['bookKey']),
       startedAt: serializer.fromJson<DateTime>(json['startedAt']),
       endedAt: serializer.fromJson<DateTime>(json['endedAt']),
       durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
       startPercent: serializer.fromJson<double>(json['startPercent']),
       endPercent: serializer.fromJson<double>(json['endPercent']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
     );
   }
   @override
@@ -2500,36 +3180,47 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'remoteId': serializer.toJson<String>(remoteId),
       'bookId': serializer.toJson<int>(bookId),
+      'bookKey': serializer.toJson<String>(bookKey),
       'startedAt': serializer.toJson<DateTime>(startedAt),
       'endedAt': serializer.toJson<DateTime>(endedAt),
       'durationSeconds': serializer.toJson<int>(durationSeconds),
       'startPercent': serializer.toJson<double>(startPercent),
       'endPercent': serializer.toJson<double>(endPercent),
+      'dirty': serializer.toJson<bool>(dirty),
     };
   }
 
   ReadingSession copyWith({
     int? id,
+    String? remoteId,
     int? bookId,
+    String? bookKey,
     DateTime? startedAt,
     DateTime? endedAt,
     int? durationSeconds,
     double? startPercent,
     double? endPercent,
+    bool? dirty,
   }) => ReadingSession(
     id: id ?? this.id,
+    remoteId: remoteId ?? this.remoteId,
     bookId: bookId ?? this.bookId,
+    bookKey: bookKey ?? this.bookKey,
     startedAt: startedAt ?? this.startedAt,
     endedAt: endedAt ?? this.endedAt,
     durationSeconds: durationSeconds ?? this.durationSeconds,
     startPercent: startPercent ?? this.startPercent,
     endPercent: endPercent ?? this.endPercent,
+    dirty: dirty ?? this.dirty,
   );
   ReadingSession copyWithCompanion(ReadingSessionsCompanion data) {
     return ReadingSession(
       id: data.id.present ? data.id.value : this.id,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      bookKey: data.bookKey.present ? data.bookKey.value : this.bookKey,
       startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
       endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
       durationSeconds: data.durationSeconds.present
@@ -2541,6 +3232,7 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       endPercent: data.endPercent.present
           ? data.endPercent.value
           : this.endPercent,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
     );
   }
 
@@ -2548,12 +3240,15 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   String toString() {
     return (StringBuffer('ReadingSession(')
           ..write('id: $id, ')
+          ..write('remoteId: $remoteId, ')
           ..write('bookId: $bookId, ')
+          ..write('bookKey: $bookKey, ')
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('durationSeconds: $durationSeconds, ')
           ..write('startPercent: $startPercent, ')
-          ..write('endPercent: $endPercent')
+          ..write('endPercent: $endPercent, ')
+          ..write('dirty: $dirty')
           ..write(')'))
         .toString();
   }
@@ -2561,92 +3256,119 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   @override
   int get hashCode => Object.hash(
     id,
+    remoteId,
     bookId,
+    bookKey,
     startedAt,
     endedAt,
     durationSeconds,
     startPercent,
     endPercent,
+    dirty,
   );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ReadingSession &&
           other.id == this.id &&
+          other.remoteId == this.remoteId &&
           other.bookId == this.bookId &&
+          other.bookKey == this.bookKey &&
           other.startedAt == this.startedAt &&
           other.endedAt == this.endedAt &&
           other.durationSeconds == this.durationSeconds &&
           other.startPercent == this.startPercent &&
-          other.endPercent == this.endPercent);
+          other.endPercent == this.endPercent &&
+          other.dirty == this.dirty);
 }
 
 class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
   final Value<int> id;
+  final Value<String> remoteId;
   final Value<int> bookId;
+  final Value<String> bookKey;
   final Value<DateTime> startedAt;
   final Value<DateTime> endedAt;
   final Value<int> durationSeconds;
   final Value<double> startPercent;
   final Value<double> endPercent;
+  final Value<bool> dirty;
   const ReadingSessionsCompanion({
     this.id = const Value.absent(),
+    this.remoteId = const Value.absent(),
     this.bookId = const Value.absent(),
+    this.bookKey = const Value.absent(),
     this.startedAt = const Value.absent(),
     this.endedAt = const Value.absent(),
     this.durationSeconds = const Value.absent(),
     this.startPercent = const Value.absent(),
     this.endPercent = const Value.absent(),
+    this.dirty = const Value.absent(),
   });
   ReadingSessionsCompanion.insert({
     this.id = const Value.absent(),
+    this.remoteId = const Value.absent(),
     required int bookId,
+    this.bookKey = const Value.absent(),
     required DateTime startedAt,
     required DateTime endedAt,
     required int durationSeconds,
     this.startPercent = const Value.absent(),
     this.endPercent = const Value.absent(),
+    this.dirty = const Value.absent(),
   }) : bookId = Value(bookId),
        startedAt = Value(startedAt),
        endedAt = Value(endedAt),
        durationSeconds = Value(durationSeconds);
   static Insertable<ReadingSession> custom({
     Expression<int>? id,
+    Expression<String>? remoteId,
     Expression<int>? bookId,
+    Expression<String>? bookKey,
     Expression<DateTime>? startedAt,
     Expression<DateTime>? endedAt,
     Expression<int>? durationSeconds,
     Expression<double>? startPercent,
     Expression<double>? endPercent,
+    Expression<bool>? dirty,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (remoteId != null) 'remote_id': remoteId,
       if (bookId != null) 'book_id': bookId,
+      if (bookKey != null) 'book_key': bookKey,
       if (startedAt != null) 'started_at': startedAt,
       if (endedAt != null) 'ended_at': endedAt,
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
       if (startPercent != null) 'start_percent': startPercent,
       if (endPercent != null) 'end_percent': endPercent,
+      if (dirty != null) 'dirty': dirty,
     });
   }
 
   ReadingSessionsCompanion copyWith({
     Value<int>? id,
+    Value<String>? remoteId,
     Value<int>? bookId,
+    Value<String>? bookKey,
     Value<DateTime>? startedAt,
     Value<DateTime>? endedAt,
     Value<int>? durationSeconds,
     Value<double>? startPercent,
     Value<double>? endPercent,
+    Value<bool>? dirty,
   }) {
     return ReadingSessionsCompanion(
       id: id ?? this.id,
+      remoteId: remoteId ?? this.remoteId,
       bookId: bookId ?? this.bookId,
+      bookKey: bookKey ?? this.bookKey,
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       startPercent: startPercent ?? this.startPercent,
       endPercent: endPercent ?? this.endPercent,
+      dirty: dirty ?? this.dirty,
     );
   }
 
@@ -2656,8 +3378,14 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
+    }
     if (bookId.present) {
       map['book_id'] = Variable<int>(bookId.value);
+    }
+    if (bookKey.present) {
+      map['book_key'] = Variable<String>(bookKey.value);
     }
     if (startedAt.present) {
       map['started_at'] = Variable<DateTime>(startedAt.value);
@@ -2674,6 +3402,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     if (endPercent.present) {
       map['end_percent'] = Variable<double>(endPercent.value);
     }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
     return map;
   }
 
@@ -2681,12 +3412,15 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
   String toString() {
     return (StringBuffer('ReadingSessionsCompanion(')
           ..write('id: $id, ')
+          ..write('remoteId: $remoteId, ')
           ..write('bookId: $bookId, ')
+          ..write('bookKey: $bookKey, ')
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('durationSeconds: $durationSeconds, ')
           ..write('startPercent: $startPercent, ')
-          ..write('endPercent: $endPercent')
+          ..write('endPercent: $endPercent, ')
+          ..write('dirty: $dirty')
           ..write(')'))
         .toString();
   }
@@ -2720,8 +3454,21 @@ class $BadgeUnlocksTable extends BadgeUnlocks
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
   @override
-  List<GeneratedColumn> get $columns => [badgeId, unlockedAt];
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [badgeId, unlockedAt, dirty];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2750,6 +3497,12 @@ class $BadgeUnlocksTable extends BadgeUnlocks
     } else if (isInserting) {
       context.missing(_unlockedAtMeta);
     }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
     return context;
   }
 
@@ -2767,6 +3520,10 @@ class $BadgeUnlocksTable extends BadgeUnlocks
         DriftSqlType.dateTime,
         data['${effectivePrefix}unlocked_at'],
       )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
     );
   }
 
@@ -2779,12 +3536,18 @@ class $BadgeUnlocksTable extends BadgeUnlocks
 class BadgeUnlock extends DataClass implements Insertable<BadgeUnlock> {
   final String badgeId;
   final DateTime unlockedAt;
-  const BadgeUnlock({required this.badgeId, required this.unlockedAt});
+  final bool dirty;
+  const BadgeUnlock({
+    required this.badgeId,
+    required this.unlockedAt,
+    required this.dirty,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['badge_id'] = Variable<String>(badgeId);
     map['unlocked_at'] = Variable<DateTime>(unlockedAt);
+    map['dirty'] = Variable<bool>(dirty);
     return map;
   }
 
@@ -2792,6 +3555,7 @@ class BadgeUnlock extends DataClass implements Insertable<BadgeUnlock> {
     return BadgeUnlocksCompanion(
       badgeId: Value(badgeId),
       unlockedAt: Value(unlockedAt),
+      dirty: Value(dirty),
     );
   }
 
@@ -2803,6 +3567,7 @@ class BadgeUnlock extends DataClass implements Insertable<BadgeUnlock> {
     return BadgeUnlock(
       badgeId: serializer.fromJson<String>(json['badgeId']),
       unlockedAt: serializer.fromJson<DateTime>(json['unlockedAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
     );
   }
   @override
@@ -2811,19 +3576,23 @@ class BadgeUnlock extends DataClass implements Insertable<BadgeUnlock> {
     return <String, dynamic>{
       'badgeId': serializer.toJson<String>(badgeId),
       'unlockedAt': serializer.toJson<DateTime>(unlockedAt),
+      'dirty': serializer.toJson<bool>(dirty),
     };
   }
 
-  BadgeUnlock copyWith({String? badgeId, DateTime? unlockedAt}) => BadgeUnlock(
-    badgeId: badgeId ?? this.badgeId,
-    unlockedAt: unlockedAt ?? this.unlockedAt,
-  );
+  BadgeUnlock copyWith({String? badgeId, DateTime? unlockedAt, bool? dirty}) =>
+      BadgeUnlock(
+        badgeId: badgeId ?? this.badgeId,
+        unlockedAt: unlockedAt ?? this.unlockedAt,
+        dirty: dirty ?? this.dirty,
+      );
   BadgeUnlock copyWithCompanion(BadgeUnlocksCompanion data) {
     return BadgeUnlock(
       badgeId: data.badgeId.present ? data.badgeId.value : this.badgeId,
       unlockedAt: data.unlockedAt.present
           ? data.unlockedAt.value
           : this.unlockedAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
     );
   }
 
@@ -2831,44 +3600,51 @@ class BadgeUnlock extends DataClass implements Insertable<BadgeUnlock> {
   String toString() {
     return (StringBuffer('BadgeUnlock(')
           ..write('badgeId: $badgeId, ')
-          ..write('unlockedAt: $unlockedAt')
+          ..write('unlockedAt: $unlockedAt, ')
+          ..write('dirty: $dirty')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(badgeId, unlockedAt);
+  int get hashCode => Object.hash(badgeId, unlockedAt, dirty);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is BadgeUnlock &&
           other.badgeId == this.badgeId &&
-          other.unlockedAt == this.unlockedAt);
+          other.unlockedAt == this.unlockedAt &&
+          other.dirty == this.dirty);
 }
 
 class BadgeUnlocksCompanion extends UpdateCompanion<BadgeUnlock> {
   final Value<String> badgeId;
   final Value<DateTime> unlockedAt;
+  final Value<bool> dirty;
   final Value<int> rowid;
   const BadgeUnlocksCompanion({
     this.badgeId = const Value.absent(),
     this.unlockedAt = const Value.absent(),
+    this.dirty = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   BadgeUnlocksCompanion.insert({
     required String badgeId,
     required DateTime unlockedAt,
+    this.dirty = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : badgeId = Value(badgeId),
        unlockedAt = Value(unlockedAt);
   static Insertable<BadgeUnlock> custom({
     Expression<String>? badgeId,
     Expression<DateTime>? unlockedAt,
+    Expression<bool>? dirty,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (badgeId != null) 'badge_id': badgeId,
       if (unlockedAt != null) 'unlocked_at': unlockedAt,
+      if (dirty != null) 'dirty': dirty,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2876,11 +3652,13 @@ class BadgeUnlocksCompanion extends UpdateCompanion<BadgeUnlock> {
   BadgeUnlocksCompanion copyWith({
     Value<String>? badgeId,
     Value<DateTime>? unlockedAt,
+    Value<bool>? dirty,
     Value<int>? rowid,
   }) {
     return BadgeUnlocksCompanion(
       badgeId: badgeId ?? this.badgeId,
       unlockedAt: unlockedAt ?? this.unlockedAt,
+      dirty: dirty ?? this.dirty,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2894,6 +3672,9 @@ class BadgeUnlocksCompanion extends UpdateCompanion<BadgeUnlock> {
     if (unlockedAt.present) {
       map['unlocked_at'] = Variable<DateTime>(unlockedAt.value);
     }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2905,6 +3686,532 @@ class BadgeUnlocksCompanion extends UpdateCompanion<BadgeUnlock> {
     return (StringBuffer('BadgeUnlocksCompanion(')
           ..write('badgeId: $badgeId, ')
           ..write('unlockedAt: $unlockedAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncTombstonesTable extends SyncTombstones
+    with TableInfo<$SyncTombstonesTable, SyncTombstone> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncTombstonesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _collectionMeta = const VerificationMeta(
+    'collection',
+  );
+  @override
+  late final GeneratedColumn<String> collection = GeneratedColumn<String>(
+    'collection',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _docIdMeta = const VerificationMeta('docId');
+  @override
+  late final GeneratedColumn<String> docId = GeneratedColumn<String>(
+    'doc_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bookKeyMeta = const VerificationMeta(
+    'bookKey',
+  );
+  @override
+  late final GeneratedColumn<String> bookKey = GeneratedColumn<String>(
+    'book_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _changedAtMeta = const VerificationMeta(
+    'changedAt',
+  );
+  @override
+  late final GeneratedColumn<int> changedAt = GeneratedColumn<int>(
+    'changed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [collection, docId, bookKey, changedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_tombstones';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncTombstone> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('collection')) {
+      context.handle(
+        _collectionMeta,
+        collection.isAcceptableOrUnknown(data['collection']!, _collectionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_collectionMeta);
+    }
+    if (data.containsKey('doc_id')) {
+      context.handle(
+        _docIdMeta,
+        docId.isAcceptableOrUnknown(data['doc_id']!, _docIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_docIdMeta);
+    }
+    if (data.containsKey('book_key')) {
+      context.handle(
+        _bookKeyMeta,
+        bookKey.isAcceptableOrUnknown(data['book_key']!, _bookKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bookKeyMeta);
+    }
+    if (data.containsKey('changed_at')) {
+      context.handle(
+        _changedAtMeta,
+        changedAt.isAcceptableOrUnknown(data['changed_at']!, _changedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_changedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {collection, docId};
+  @override
+  SyncTombstone map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncTombstone(
+      collection: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}collection'],
+      )!,
+      docId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}doc_id'],
+      )!,
+      bookKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}book_key'],
+      )!,
+      changedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}changed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncTombstonesTable createAlias(String alias) {
+    return $SyncTombstonesTable(attachedDatabase, alias);
+  }
+}
+
+class SyncTombstone extends DataClass implements Insertable<SyncTombstone> {
+  final String collection;
+  final String docId;
+  final String bookKey;
+  final int changedAt;
+  const SyncTombstone({
+    required this.collection,
+    required this.docId,
+    required this.bookKey,
+    required this.changedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['collection'] = Variable<String>(collection);
+    map['doc_id'] = Variable<String>(docId);
+    map['book_key'] = Variable<String>(bookKey);
+    map['changed_at'] = Variable<int>(changedAt);
+    return map;
+  }
+
+  SyncTombstonesCompanion toCompanion(bool nullToAbsent) {
+    return SyncTombstonesCompanion(
+      collection: Value(collection),
+      docId: Value(docId),
+      bookKey: Value(bookKey),
+      changedAt: Value(changedAt),
+    );
+  }
+
+  factory SyncTombstone.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncTombstone(
+      collection: serializer.fromJson<String>(json['collection']),
+      docId: serializer.fromJson<String>(json['docId']),
+      bookKey: serializer.fromJson<String>(json['bookKey']),
+      changedAt: serializer.fromJson<int>(json['changedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'collection': serializer.toJson<String>(collection),
+      'docId': serializer.toJson<String>(docId),
+      'bookKey': serializer.toJson<String>(bookKey),
+      'changedAt': serializer.toJson<int>(changedAt),
+    };
+  }
+
+  SyncTombstone copyWith({
+    String? collection,
+    String? docId,
+    String? bookKey,
+    int? changedAt,
+  }) => SyncTombstone(
+    collection: collection ?? this.collection,
+    docId: docId ?? this.docId,
+    bookKey: bookKey ?? this.bookKey,
+    changedAt: changedAt ?? this.changedAt,
+  );
+  SyncTombstone copyWithCompanion(SyncTombstonesCompanion data) {
+    return SyncTombstone(
+      collection: data.collection.present
+          ? data.collection.value
+          : this.collection,
+      docId: data.docId.present ? data.docId.value : this.docId,
+      bookKey: data.bookKey.present ? data.bookKey.value : this.bookKey,
+      changedAt: data.changedAt.present ? data.changedAt.value : this.changedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncTombstone(')
+          ..write('collection: $collection, ')
+          ..write('docId: $docId, ')
+          ..write('bookKey: $bookKey, ')
+          ..write('changedAt: $changedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(collection, docId, bookKey, changedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncTombstone &&
+          other.collection == this.collection &&
+          other.docId == this.docId &&
+          other.bookKey == this.bookKey &&
+          other.changedAt == this.changedAt);
+}
+
+class SyncTombstonesCompanion extends UpdateCompanion<SyncTombstone> {
+  final Value<String> collection;
+  final Value<String> docId;
+  final Value<String> bookKey;
+  final Value<int> changedAt;
+  final Value<int> rowid;
+  const SyncTombstonesCompanion({
+    this.collection = const Value.absent(),
+    this.docId = const Value.absent(),
+    this.bookKey = const Value.absent(),
+    this.changedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncTombstonesCompanion.insert({
+    required String collection,
+    required String docId,
+    required String bookKey,
+    required int changedAt,
+    this.rowid = const Value.absent(),
+  }) : collection = Value(collection),
+       docId = Value(docId),
+       bookKey = Value(bookKey),
+       changedAt = Value(changedAt);
+  static Insertable<SyncTombstone> custom({
+    Expression<String>? collection,
+    Expression<String>? docId,
+    Expression<String>? bookKey,
+    Expression<int>? changedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (collection != null) 'collection': collection,
+      if (docId != null) 'doc_id': docId,
+      if (bookKey != null) 'book_key': bookKey,
+      if (changedAt != null) 'changed_at': changedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncTombstonesCompanion copyWith({
+    Value<String>? collection,
+    Value<String>? docId,
+    Value<String>? bookKey,
+    Value<int>? changedAt,
+    Value<int>? rowid,
+  }) {
+    return SyncTombstonesCompanion(
+      collection: collection ?? this.collection,
+      docId: docId ?? this.docId,
+      bookKey: bookKey ?? this.bookKey,
+      changedAt: changedAt ?? this.changedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (collection.present) {
+      map['collection'] = Variable<String>(collection.value);
+    }
+    if (docId.present) {
+      map['doc_id'] = Variable<String>(docId.value);
+    }
+    if (bookKey.present) {
+      map['book_key'] = Variable<String>(bookKey.value);
+    }
+    if (changedAt.present) {
+      map['changed_at'] = Variable<int>(changedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncTombstonesCompanion(')
+          ..write('collection: $collection, ')
+          ..write('docId: $docId, ')
+          ..write('bookKey: $bookKey, ')
+          ..write('changedAt: $changedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncMetaTable extends SyncMeta
+    with TableInfo<$SyncMetaTable, SyncMetaData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncMetaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _intValueMeta = const VerificationMeta(
+    'intValue',
+  );
+  @override
+  late final GeneratedColumn<int> intValue = GeneratedColumn<int>(
+    'int_value',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, intValue];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_meta';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncMetaData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('int_value')) {
+      context.handle(
+        _intValueMeta,
+        intValue.isAcceptableOrUnknown(data['int_value']!, _intValueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_intValueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  SyncMetaData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncMetaData(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      intValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}int_value'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncMetaTable createAlias(String alias) {
+    return $SyncMetaTable(attachedDatabase, alias);
+  }
+}
+
+class SyncMetaData extends DataClass implements Insertable<SyncMetaData> {
+  final String key;
+  final int intValue;
+  const SyncMetaData({required this.key, required this.intValue});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['int_value'] = Variable<int>(intValue);
+    return map;
+  }
+
+  SyncMetaCompanion toCompanion(bool nullToAbsent) {
+    return SyncMetaCompanion(key: Value(key), intValue: Value(intValue));
+  }
+
+  factory SyncMetaData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncMetaData(
+      key: serializer.fromJson<String>(json['key']),
+      intValue: serializer.fromJson<int>(json['intValue']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'intValue': serializer.toJson<int>(intValue),
+    };
+  }
+
+  SyncMetaData copyWith({String? key, int? intValue}) =>
+      SyncMetaData(key: key ?? this.key, intValue: intValue ?? this.intValue);
+  SyncMetaData copyWithCompanion(SyncMetaCompanion data) {
+    return SyncMetaData(
+      key: data.key.present ? data.key.value : this.key,
+      intValue: data.intValue.present ? data.intValue.value : this.intValue,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncMetaData(')
+          ..write('key: $key, ')
+          ..write('intValue: $intValue')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, intValue);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncMetaData &&
+          other.key == this.key &&
+          other.intValue == this.intValue);
+}
+
+class SyncMetaCompanion extends UpdateCompanion<SyncMetaData> {
+  final Value<String> key;
+  final Value<int> intValue;
+  final Value<int> rowid;
+  const SyncMetaCompanion({
+    this.key = const Value.absent(),
+    this.intValue = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncMetaCompanion.insert({
+    required String key,
+    required int intValue,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       intValue = Value(intValue);
+  static Insertable<SyncMetaData> custom({
+    Expression<String>? key,
+    Expression<int>? intValue,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (intValue != null) 'int_value': intValue,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncMetaCompanion copyWith({
+    Value<String>? key,
+    Value<int>? intValue,
+    Value<int>? rowid,
+  }) {
+    return SyncMetaCompanion(
+      key: key ?? this.key,
+      intValue: intValue ?? this.intValue,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (intValue.present) {
+      map['int_value'] = Variable<int>(intValue.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncMetaCompanion(')
+          ..write('key: $key, ')
+          ..write('intValue: $intValue, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2924,6 +4231,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $BadgeUnlocksTable badgeUnlocks = $BadgeUnlocksTable(this);
+  late final $SyncTombstonesTable syncTombstones = $SyncTombstonesTable(this);
+  late final $SyncMetaTable syncMeta = $SyncMetaTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2935,6 +4244,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     bookmarks,
     readingSessions,
     badgeUnlocks,
+    syncTombstones,
+    syncMeta,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2961,8 +4272,8 @@ typedef $$BooksTableCreateCompanionBuilder =
       required String title,
       Value<String> author,
       Value<String?> coverPath,
-      required String filePath,
-      required String fileHash,
+      Value<String?> filePath,
+      Value<String?> fileHash,
       Value<String> bookKey,
       Value<String> shelf,
       required DateTime addedAt,
@@ -2975,6 +4286,10 @@ typedef $$BooksTableCreateCompanionBuilder =
       Value<String?> genre,
       Value<String?> locationsJson,
       Value<String?> sourceUrl,
+      Value<int> changedAt,
+      Value<int> stateChangedAt,
+      Value<bool> dirty,
+      Value<bool> deleted,
     });
 typedef $$BooksTableUpdateCompanionBuilder =
     BooksCompanion Function({
@@ -2982,8 +4297,8 @@ typedef $$BooksTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String> author,
       Value<String?> coverPath,
-      Value<String> filePath,
-      Value<String> fileHash,
+      Value<String?> filePath,
+      Value<String?> fileHash,
       Value<String> bookKey,
       Value<String> shelf,
       Value<DateTime> addedAt,
@@ -2996,6 +4311,10 @@ typedef $$BooksTableUpdateCompanionBuilder =
       Value<String?> genre,
       Value<String?> locationsJson,
       Value<String?> sourceUrl,
+      Value<int> changedAt,
+      Value<int> stateChangedAt,
+      Value<bool> dirty,
+      Value<bool> deleted,
     });
 
 final class $$BooksTableReferences
@@ -3134,6 +4453,26 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
 
   ColumnFilters<String> get sourceUrl => $composableBuilder(
     column: $table.sourceUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changedAt => $composableBuilder(
+    column: $table.changedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stateChangedAt => $composableBuilder(
+    column: $table.stateChangedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3286,6 +4625,26 @@ class $$BooksTableOrderingComposer
     column: $table.sourceUrl,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get changedAt => $composableBuilder(
+    column: $table.changedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stateChangedAt => $composableBuilder(
+    column: $table.stateChangedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BooksTableAnnotationComposer
@@ -3362,6 +4721,20 @@ class $$BooksTableAnnotationComposer
 
   GeneratedColumn<String> get sourceUrl =>
       $composableBuilder(column: $table.sourceUrl, builder: (column) => column);
+
+  GeneratedColumn<int> get changedAt =>
+      $composableBuilder(column: $table.changedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get stateChangedAt => $composableBuilder(
+    column: $table.stateChangedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   Expression<T> highlightsRefs<T extends Object>(
     Expression<T> Function($$HighlightsTableAnnotationComposer a) f,
@@ -3446,8 +4819,8 @@ class $$BooksTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> author = const Value.absent(),
                 Value<String?> coverPath = const Value.absent(),
-                Value<String> filePath = const Value.absent(),
-                Value<String> fileHash = const Value.absent(),
+                Value<String?> filePath = const Value.absent(),
+                Value<String?> fileHash = const Value.absent(),
                 Value<String> bookKey = const Value.absent(),
                 Value<String> shelf = const Value.absent(),
                 Value<DateTime> addedAt = const Value.absent(),
@@ -3460,6 +4833,10 @@ class $$BooksTableTableManager
                 Value<String?> genre = const Value.absent(),
                 Value<String?> locationsJson = const Value.absent(),
                 Value<String?> sourceUrl = const Value.absent(),
+                Value<int> changedAt = const Value.absent(),
+                Value<int> stateChangedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
               }) => BooksCompanion(
                 id: id,
                 title: title,
@@ -3479,6 +4856,10 @@ class $$BooksTableTableManager
                 genre: genre,
                 locationsJson: locationsJson,
                 sourceUrl: sourceUrl,
+                changedAt: changedAt,
+                stateChangedAt: stateChangedAt,
+                dirty: dirty,
+                deleted: deleted,
               ),
           createCompanionCallback:
               ({
@@ -3486,8 +4867,8 @@ class $$BooksTableTableManager
                 required String title,
                 Value<String> author = const Value.absent(),
                 Value<String?> coverPath = const Value.absent(),
-                required String filePath,
-                required String fileHash,
+                Value<String?> filePath = const Value.absent(),
+                Value<String?> fileHash = const Value.absent(),
                 Value<String> bookKey = const Value.absent(),
                 Value<String> shelf = const Value.absent(),
                 required DateTime addedAt,
@@ -3500,6 +4881,10 @@ class $$BooksTableTableManager
                 Value<String?> genre = const Value.absent(),
                 Value<String?> locationsJson = const Value.absent(),
                 Value<String?> sourceUrl = const Value.absent(),
+                Value<int> changedAt = const Value.absent(),
+                Value<int> stateChangedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
               }) => BooksCompanion.insert(
                 id: id,
                 title: title,
@@ -3519,6 +4904,10 @@ class $$BooksTableTableManager
                 genre: genre,
                 locationsJson: locationsJson,
                 sourceUrl: sourceUrl,
+                changedAt: changedAt,
+                stateChangedAt: stateChangedAt,
+                dirty: dirty,
+                deleted: deleted,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -3604,6 +4993,7 @@ typedef $$BooksTableProcessedTableManager =
 typedef $$HighlightsTableCreateCompanionBuilder =
     HighlightsCompanion Function({
       Value<int> id,
+      Value<String> remoteId,
       required int bookId,
       required String cfiRange,
       required String selectedText,
@@ -3612,10 +5002,14 @@ typedef $$HighlightsTableCreateCompanionBuilder =
       Value<String?> chapterTitle,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<int> changedAt,
+      Value<bool> dirty,
+      Value<bool> deleted,
     });
 typedef $$HighlightsTableUpdateCompanionBuilder =
     HighlightsCompanion Function({
       Value<int> id,
+      Value<String> remoteId,
       Value<int> bookId,
       Value<String> cfiRange,
       Value<String> selectedText,
@@ -3624,6 +5018,9 @@ typedef $$HighlightsTableUpdateCompanionBuilder =
       Value<String?> chapterTitle,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<int> changedAt,
+      Value<bool> dirty,
+      Value<bool> deleted,
     });
 
 final class $$HighlightsTableReferences
@@ -3662,6 +5059,11 @@ class $$HighlightsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get cfiRange => $composableBuilder(
     column: $table.cfiRange,
     builder: (column) => ColumnFilters(column),
@@ -3694,6 +5096,21 @@ class $$HighlightsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changedAt => $composableBuilder(
+    column: $table.changedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3735,6 +5152,11 @@ class $$HighlightsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get cfiRange => $composableBuilder(
     column: $table.cfiRange,
     builder: (column) => ColumnOrderings(column),
@@ -3767,6 +5189,21 @@ class $$HighlightsTableOrderingComposer
 
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changedAt => $composableBuilder(
+    column: $table.changedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3806,6 +5243,9 @@ class $$HighlightsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
   GeneratedColumn<String> get cfiRange =>
       $composableBuilder(column: $table.cfiRange, builder: (column) => column);
 
@@ -3830,6 +5270,15 @@ class $$HighlightsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get changedAt =>
+      $composableBuilder(column: $table.changedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   $$BooksTableAnnotationComposer get bookId {
     final $$BooksTableAnnotationComposer composer = $composerBuilder(
@@ -3884,6 +5333,7 @@ class $$HighlightsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> remoteId = const Value.absent(),
                 Value<int> bookId = const Value.absent(),
                 Value<String> cfiRange = const Value.absent(),
                 Value<String> selectedText = const Value.absent(),
@@ -3892,8 +5342,12 @@ class $$HighlightsTableTableManager
                 Value<String?> chapterTitle = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> changedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
               }) => HighlightsCompanion(
                 id: id,
+                remoteId: remoteId,
                 bookId: bookId,
                 cfiRange: cfiRange,
                 selectedText: selectedText,
@@ -3902,10 +5356,14 @@ class $$HighlightsTableTableManager
                 chapterTitle: chapterTitle,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                changedAt: changedAt,
+                dirty: dirty,
+                deleted: deleted,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> remoteId = const Value.absent(),
                 required int bookId,
                 required String cfiRange,
                 required String selectedText,
@@ -3914,8 +5372,12 @@ class $$HighlightsTableTableManager
                 Value<String?> chapterTitle = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<int> changedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
               }) => HighlightsCompanion.insert(
                 id: id,
+                remoteId: remoteId,
                 bookId: bookId,
                 cfiRange: cfiRange,
                 selectedText: selectedText,
@@ -3924,6 +5386,9 @@ class $$HighlightsTableTableManager
                 chapterTitle: chapterTitle,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                changedAt: changedAt,
+                dirty: dirty,
+                deleted: deleted,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4174,20 +5639,28 @@ typedef $$DictionaryCachesTableProcessedTableManager =
 typedef $$BookmarksTableCreateCompanionBuilder =
     BookmarksCompanion Function({
       Value<int> id,
+      Value<String> remoteId,
       required int bookId,
       required String cfi,
       Value<String?> label,
       Value<double> percent,
       required DateTime createdAt,
+      Value<int> changedAt,
+      Value<bool> dirty,
+      Value<bool> deleted,
     });
 typedef $$BookmarksTableUpdateCompanionBuilder =
     BookmarksCompanion Function({
       Value<int> id,
+      Value<String> remoteId,
       Value<int> bookId,
       Value<String> cfi,
       Value<String?> label,
       Value<double> percent,
       Value<DateTime> createdAt,
+      Value<int> changedAt,
+      Value<bool> dirty,
+      Value<bool> deleted,
     });
 
 final class $$BookmarksTableReferences
@@ -4226,6 +5699,11 @@ class $$BookmarksTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get cfi => $composableBuilder(
     column: $table.cfi,
     builder: (column) => ColumnFilters(column),
@@ -4243,6 +5721,21 @@ class $$BookmarksTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changedAt => $composableBuilder(
+    column: $table.changedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4284,6 +5777,11 @@ class $$BookmarksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get cfi => $composableBuilder(
     column: $table.cfi,
     builder: (column) => ColumnOrderings(column),
@@ -4301,6 +5799,21 @@ class $$BookmarksTableOrderingComposer
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changedAt => $composableBuilder(
+    column: $table.changedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4340,6 +5853,9 @@ class $$BookmarksTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
   GeneratedColumn<String> get cfi =>
       $composableBuilder(column: $table.cfi, builder: (column) => column);
 
@@ -4351,6 +5867,15 @@ class $$BookmarksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get changedAt =>
+      $composableBuilder(column: $table.changedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   $$BooksTableAnnotationComposer get bookId {
     final $$BooksTableAnnotationComposer composer = $composerBuilder(
@@ -4405,34 +5930,50 @@ class $$BookmarksTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> remoteId = const Value.absent(),
                 Value<int> bookId = const Value.absent(),
                 Value<String> cfi = const Value.absent(),
                 Value<String?> label = const Value.absent(),
                 Value<double> percent = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> changedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
               }) => BookmarksCompanion(
                 id: id,
+                remoteId: remoteId,
                 bookId: bookId,
                 cfi: cfi,
                 label: label,
                 percent: percent,
                 createdAt: createdAt,
+                changedAt: changedAt,
+                dirty: dirty,
+                deleted: deleted,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> remoteId = const Value.absent(),
                 required int bookId,
                 required String cfi,
                 Value<String?> label = const Value.absent(),
                 Value<double> percent = const Value.absent(),
                 required DateTime createdAt,
+                Value<int> changedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
               }) => BookmarksCompanion.insert(
                 id: id,
+                remoteId: remoteId,
                 bookId: bookId,
                 cfi: cfi,
                 label: label,
                 percent: percent,
                 createdAt: createdAt,
+                changedAt: changedAt,
+                dirty: dirty,
+                deleted: deleted,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4504,22 +6045,28 @@ typedef $$BookmarksTableProcessedTableManager =
 typedef $$ReadingSessionsTableCreateCompanionBuilder =
     ReadingSessionsCompanion Function({
       Value<int> id,
+      Value<String> remoteId,
       required int bookId,
+      Value<String> bookKey,
       required DateTime startedAt,
       required DateTime endedAt,
       required int durationSeconds,
       Value<double> startPercent,
       Value<double> endPercent,
+      Value<bool> dirty,
     });
 typedef $$ReadingSessionsTableUpdateCompanionBuilder =
     ReadingSessionsCompanion Function({
       Value<int> id,
+      Value<String> remoteId,
       Value<int> bookId,
+      Value<String> bookKey,
       Value<DateTime> startedAt,
       Value<DateTime> endedAt,
       Value<int> durationSeconds,
       Value<double> startPercent,
       Value<double> endPercent,
+      Value<bool> dirty,
     });
 
 class $$ReadingSessionsTableFilterComposer
@@ -4536,8 +6083,18 @@ class $$ReadingSessionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get bookId => $composableBuilder(
     column: $table.bookId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bookKey => $composableBuilder(
+    column: $table.bookKey,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4565,6 +6122,11 @@ class $$ReadingSessionsTableFilterComposer
     column: $table.endPercent,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$ReadingSessionsTableOrderingComposer
@@ -4581,8 +6143,18 @@ class $$ReadingSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get bookId => $composableBuilder(
     column: $table.bookId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bookKey => $composableBuilder(
+    column: $table.bookKey,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4610,6 +6182,11 @@ class $$ReadingSessionsTableOrderingComposer
     column: $table.endPercent,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ReadingSessionsTableAnnotationComposer
@@ -4624,8 +6201,14 @@ class $$ReadingSessionsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
   GeneratedColumn<int> get bookId =>
       $composableBuilder(column: $table.bookId, builder: (column) => column);
+
+  GeneratedColumn<String> get bookKey =>
+      $composableBuilder(column: $table.bookKey, builder: (column) => column);
 
   GeneratedColumn<DateTime> get startedAt =>
       $composableBuilder(column: $table.startedAt, builder: (column) => column);
@@ -4647,6 +6230,9 @@ class $$ReadingSessionsTableAnnotationComposer
     column: $table.endPercent,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
 }
 
 class $$ReadingSessionsTableTableManager
@@ -4687,38 +6273,50 @@ class $$ReadingSessionsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> remoteId = const Value.absent(),
                 Value<int> bookId = const Value.absent(),
+                Value<String> bookKey = const Value.absent(),
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime> endedAt = const Value.absent(),
                 Value<int> durationSeconds = const Value.absent(),
                 Value<double> startPercent = const Value.absent(),
                 Value<double> endPercent = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
               }) => ReadingSessionsCompanion(
                 id: id,
+                remoteId: remoteId,
                 bookId: bookId,
+                bookKey: bookKey,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 durationSeconds: durationSeconds,
                 startPercent: startPercent,
                 endPercent: endPercent,
+                dirty: dirty,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> remoteId = const Value.absent(),
                 required int bookId,
+                Value<String> bookKey = const Value.absent(),
                 required DateTime startedAt,
                 required DateTime endedAt,
                 required int durationSeconds,
                 Value<double> startPercent = const Value.absent(),
                 Value<double> endPercent = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
               }) => ReadingSessionsCompanion.insert(
                 id: id,
+                remoteId: remoteId,
                 bookId: bookId,
+                bookKey: bookKey,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 durationSeconds: durationSeconds,
                 startPercent: startPercent,
                 endPercent: endPercent,
+                dirty: dirty,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4758,12 +6356,14 @@ typedef $$BadgeUnlocksTableCreateCompanionBuilder =
     BadgeUnlocksCompanion Function({
       required String badgeId,
       required DateTime unlockedAt,
+      Value<bool> dirty,
       Value<int> rowid,
     });
 typedef $$BadgeUnlocksTableUpdateCompanionBuilder =
     BadgeUnlocksCompanion Function({
       Value<String> badgeId,
       Value<DateTime> unlockedAt,
+      Value<bool> dirty,
       Value<int> rowid,
     });
 
@@ -4783,6 +6383,11 @@ class $$BadgeUnlocksTableFilterComposer
 
   ColumnFilters<DateTime> get unlockedAt => $composableBuilder(
     column: $table.unlockedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4805,6 +6410,11 @@ class $$BadgeUnlocksTableOrderingComposer
     column: $table.unlockedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BadgeUnlocksTableAnnotationComposer
@@ -4823,6 +6433,9 @@ class $$BadgeUnlocksTableAnnotationComposer
     column: $table.unlockedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
 }
 
 class $$BadgeUnlocksTableTableManager
@@ -4858,20 +6471,24 @@ class $$BadgeUnlocksTableTableManager
               ({
                 Value<String> badgeId = const Value.absent(),
                 Value<DateTime> unlockedAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BadgeUnlocksCompanion(
                 badgeId: badgeId,
                 unlockedAt: unlockedAt,
+                dirty: dirty,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String badgeId,
                 required DateTime unlockedAt,
+                Value<bool> dirty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BadgeUnlocksCompanion.insert(
                 badgeId: badgeId,
                 unlockedAt: unlockedAt,
+                dirty: dirty,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4908,6 +6525,349 @@ typedef $$BadgeUnlocksTableProcessedTableManager =
       BadgeUnlock,
       PrefetchHooks Function()
     >;
+typedef $$SyncTombstonesTableCreateCompanionBuilder =
+    SyncTombstonesCompanion Function({
+      required String collection,
+      required String docId,
+      required String bookKey,
+      required int changedAt,
+      Value<int> rowid,
+    });
+typedef $$SyncTombstonesTableUpdateCompanionBuilder =
+    SyncTombstonesCompanion Function({
+      Value<String> collection,
+      Value<String> docId,
+      Value<String> bookKey,
+      Value<int> changedAt,
+      Value<int> rowid,
+    });
+
+class $$SyncTombstonesTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncTombstonesTable> {
+  $$SyncTombstonesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get collection => $composableBuilder(
+    column: $table.collection,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get docId => $composableBuilder(
+    column: $table.docId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bookKey => $composableBuilder(
+    column: $table.bookKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get changedAt => $composableBuilder(
+    column: $table.changedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncTombstonesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncTombstonesTable> {
+  $$SyncTombstonesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get collection => $composableBuilder(
+    column: $table.collection,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get docId => $composableBuilder(
+    column: $table.docId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bookKey => $composableBuilder(
+    column: $table.bookKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get changedAt => $composableBuilder(
+    column: $table.changedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncTombstonesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncTombstonesTable> {
+  $$SyncTombstonesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get collection => $composableBuilder(
+    column: $table.collection,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get docId =>
+      $composableBuilder(column: $table.docId, builder: (column) => column);
+
+  GeneratedColumn<String> get bookKey =>
+      $composableBuilder(column: $table.bookKey, builder: (column) => column);
+
+  GeneratedColumn<int> get changedAt =>
+      $composableBuilder(column: $table.changedAt, builder: (column) => column);
+}
+
+class $$SyncTombstonesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncTombstonesTable,
+          SyncTombstone,
+          $$SyncTombstonesTableFilterComposer,
+          $$SyncTombstonesTableOrderingComposer,
+          $$SyncTombstonesTableAnnotationComposer,
+          $$SyncTombstonesTableCreateCompanionBuilder,
+          $$SyncTombstonesTableUpdateCompanionBuilder,
+          (
+            SyncTombstone,
+            BaseReferences<_$AppDatabase, $SyncTombstonesTable, SyncTombstone>,
+          ),
+          SyncTombstone,
+          PrefetchHooks Function()
+        > {
+  $$SyncTombstonesTableTableManager(
+    _$AppDatabase db,
+    $SyncTombstonesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncTombstonesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncTombstonesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncTombstonesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> collection = const Value.absent(),
+                Value<String> docId = const Value.absent(),
+                Value<String> bookKey = const Value.absent(),
+                Value<int> changedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncTombstonesCompanion(
+                collection: collection,
+                docId: docId,
+                bookKey: bookKey,
+                changedAt: changedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String collection,
+                required String docId,
+                required String bookKey,
+                required int changedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => SyncTombstonesCompanion.insert(
+                collection: collection,
+                docId: docId,
+                bookKey: bookKey,
+                changedAt: changedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SyncTombstonesTable, SyncTombstone>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SyncTombstonesTable,
+                    SyncTombstone
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncTombstonesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncTombstonesTable,
+      SyncTombstone,
+      $$SyncTombstonesTableFilterComposer,
+      $$SyncTombstonesTableOrderingComposer,
+      $$SyncTombstonesTableAnnotationComposer,
+      $$SyncTombstonesTableCreateCompanionBuilder,
+      $$SyncTombstonesTableUpdateCompanionBuilder,
+      (
+        SyncTombstone,
+        BaseReferences<_$AppDatabase, $SyncTombstonesTable, SyncTombstone>,
+      ),
+      SyncTombstone,
+      PrefetchHooks Function()
+    >;
+typedef $$SyncMetaTableCreateCompanionBuilder =
+    SyncMetaCompanion Function({
+      required String key,
+      required int intValue,
+      Value<int> rowid,
+    });
+typedef $$SyncMetaTableUpdateCompanionBuilder =
+    SyncMetaCompanion Function({
+      Value<String> key,
+      Value<int> intValue,
+      Value<int> rowid,
+    });
+
+class $$SyncMetaTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get intValue => $composableBuilder(
+    column: $table.intValue,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncMetaTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get intValue => $composableBuilder(
+    column: $table.intValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncMetaTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<int> get intValue =>
+      $composableBuilder(column: $table.intValue, builder: (column) => column);
+}
+
+class $$SyncMetaTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncMetaTable,
+          SyncMetaData,
+          $$SyncMetaTableFilterComposer,
+          $$SyncMetaTableOrderingComposer,
+          $$SyncMetaTableAnnotationComposer,
+          $$SyncMetaTableCreateCompanionBuilder,
+          $$SyncMetaTableUpdateCompanionBuilder,
+          (
+            SyncMetaData,
+            BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>,
+          ),
+          SyncMetaData,
+          PrefetchHooks Function()
+        > {
+  $$SyncMetaTableTableManager(_$AppDatabase db, $SyncMetaTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncMetaTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncMetaTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncMetaTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<int> intValue = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) =>
+                  SyncMetaCompanion(key: key, intValue: intValue, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required int intValue,
+                Value<int> rowid = const Value.absent(),
+              }) => SyncMetaCompanion.insert(
+                key: key,
+                intValue: intValue,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SyncMetaTable, SyncMetaData>(table),
+                  BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncMetaTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncMetaTable,
+      SyncMetaData,
+      $$SyncMetaTableFilterComposer,
+      $$SyncMetaTableOrderingComposer,
+      $$SyncMetaTableAnnotationComposer,
+      $$SyncMetaTableCreateCompanionBuilder,
+      $$SyncMetaTableUpdateCompanionBuilder,
+      (
+        SyncMetaData,
+        BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>,
+      ),
+      SyncMetaData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4924,4 +6884,8 @@ class $AppDatabaseManager {
       $$ReadingSessionsTableTableManager(_db, _db.readingSessions);
   $$BadgeUnlocksTableTableManager get badgeUnlocks =>
       $$BadgeUnlocksTableTableManager(_db, _db.badgeUnlocks);
+  $$SyncTombstonesTableTableManager get syncTombstones =>
+      $$SyncTombstonesTableTableManager(_db, _db.syncTombstones);
+  $$SyncMetaTableTableManager get syncMeta =>
+      $$SyncMetaTableTableManager(_db, _db.syncMeta);
 }

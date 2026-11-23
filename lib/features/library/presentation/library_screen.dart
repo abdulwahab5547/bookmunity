@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/db/app_database.dart';
+import '../../../core/sync/cloud_settings.dart';
 import '../../../design/book_cover.dart';
 import '../../../design/brutal_theme.dart';
 import '../../../design/brutal_widgets.dart';
@@ -23,20 +23,18 @@ class LibraryScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
+  /// Layout preference, kept in the account's cloud settings.
   static const _gridKey = 'library_grid';
 
   _Shelf shelf = _Shelf.all;
-  bool grid = true;
   bool importing = false;
   String query = '';
+
+  bool get grid => ref.watch(cloudSettingsProvider).get<bool>(_gridKey) ?? true;
 
   @override
   void initState() {
     super.initState();
-    SharedPreferences.getInstance().then((preferences) {
-      final saved = preferences.getBool(_gridKey);
-      if (saved != null && mounted) setState(() => grid = saved);
-    });
     // Award badges earned before this version tracked them (e.g. books that
     // were already finished), without a burst of notifications.
     WidgetsBinding.instance.addPostFrameCallback(
@@ -44,11 +42,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     );
   }
 
-  Future<void> _toggleLayout() async {
-    setState(() => grid = !grid);
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool(_gridKey, grid);
-  }
+  void _toggleLayout() =>
+      ref.read(cloudSettingsProvider.notifier).set(_gridKey, !grid);
 
   Future<void> _import() async {
     setState(() => importing = true);
@@ -202,7 +197,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                     child: _ContinueReading(
                       book: continueBook,
-                      onOpen: () => _push(ReaderScreen(book: continueBook)),
+                      onOpen: () => _push(
+                        continueBook.filePath == null
+                            ? BookDetailScreen(book: continueBook)
+                            : ReaderScreen(book: continueBook),
+                      ),
                     ),
                   ),
                 ),
@@ -374,6 +373,10 @@ class _BookTile extends StatelessWidget {
           style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
+        if (book.filePath == null) ...[
+          const NotOnDeviceTag(),
+          const SizedBox(height: 6),
+        ],
         if (book.isFinished)
           Row(
             children: [
@@ -399,18 +402,23 @@ class _BookTile extends StatelessWidget {
     );
     return Semantics(
       button: true,
-      label: '${book.title} by ${book.author}',
+      label:
+          '${book.title} by ${book.author}'
+          '${book.filePath == null ? ', not on this device' : ''}',
       child: InkWell(
         onTap: onTap,
         borderRadius: BrutalTokens.smallBorderRadius,
         child: compact
             ? Row(
                 children: [
-                  BookCover(
-                    title: book.title,
-                    coverPath: book.coverPath,
-                    width: 64,
-                    height: 94,
+                  Opacity(
+                    opacity: book.filePath == null ? 0.55 : 1,
+                    child: BookCover(
+                      title: book.title,
+                      coverPath: book.coverPath,
+                      width: 64,
+                      height: 94,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(child: details),
@@ -420,10 +428,13 @@ class _BookTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: BookCover(
-                      title: book.title,
-                      coverPath: book.coverPath,
-                      width: double.infinity,
+                    child: Opacity(
+                      opacity: book.filePath == null ? 0.55 : 1,
+                      child: BookCover(
+                        title: book.title,
+                        coverPath: book.coverPath,
+                        width: double.infinity,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),

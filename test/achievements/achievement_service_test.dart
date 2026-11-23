@@ -1,6 +1,7 @@
 import 'package:bookmunity/core/db/app_database.dart';
 import 'package:bookmunity/features/achievements/data/achievement_service.dart';
 import 'package:bookmunity/features/achievements/domain/badges.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,8 +19,8 @@ void main() {
     final id = await database.addBook(
       BooksCompanion.insert(
         title: 'Book',
-        filePath: '/x.epub',
-        fileHash: 'h',
+        filePath: const Value('/x.epub'),
+        fileHash: const Value('h'),
         addedAt: DateTime(2026),
       ),
     );
@@ -59,8 +60,8 @@ void main() {
     final id = await database.addBook(
       BooksCompanion.insert(
         title: 'Gone',
-        filePath: '/tmp/missing.epub',
-        fileHash: 'g',
+        filePath: const Value('/tmp/missing.epub'),
+        fileHash: const Value('g'),
         addedAt: DateTime(2026),
       ),
     );

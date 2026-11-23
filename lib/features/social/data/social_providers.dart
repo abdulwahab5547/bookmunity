@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/db/app_database.dart';
+import '../../../core/sync/cloud_settings.dart';
 import '../../achievements/data/achievement_service.dart';
 import '../../achievements/domain/badges.dart';
 import 'social_models.dart';
@@ -95,25 +95,31 @@ final reviewsProvider = StreamProvider.autoDispose.family<List<Review>, String>(
 );
 
 /// Whether reading activity is shared with friends (on by default).
+/// Stored in the account's cloud settings (key `share_activity`).
 final shareActivityProvider =
-    StateNotifierProvider<ShareActivityNotifier, bool>(
-      (ref) => ShareActivityNotifier()..load(),
-    );
+    StateNotifierProvider<ShareActivityNotifier, bool>((ref) {
+      final notifier = ShareActivityNotifier(
+        ref.watch(cloudSettingsProvider.notifier),
+      )..apply(ref.read(cloudSettingsProvider));
+      ref.listen(cloudSettingsProvider, (_, next) => notifier.apply(next));
+      return notifier;
+    });
 
 class ShareActivityNotifier extends StateNotifier<bool> {
-  ShareActivityNotifier() : super(true);
+  ShareActivityNotifier([this._store]) : super(true);
+
+  final CloudSettingsController? _store;
 
   static const _key = 'share_activity';
 
-  Future<void> load() async {
-    final preferences = await SharedPreferences.getInstance();
-    if (mounted) state = preferences.getBool(_key) ?? true;
+  void apply(CloudSettings settings) {
+    final next = settings.get<bool>(_key) ?? true;
+    if (mounted && next != state) state = next;
   }
 
   Future<void> set(bool value) async {
     state = value;
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool(_key, value);
+    _store?.set(_key, value);
   }
 }
 
