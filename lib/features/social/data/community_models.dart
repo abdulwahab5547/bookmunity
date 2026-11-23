@@ -265,30 +265,29 @@ class Post {
     return copyWith(reactions: next);
   }
 
-  Post copyWith({Map<ReactionType, int>? reactions, int? commentCount}) =>
-      Post(
-        id: id,
-        authorUid: authorUid,
-        authorUsername: authorUsername,
-        authorDisplayName: authorDisplayName,
-        type: type,
-        visibility: visibility,
-        bookKey: bookKey,
-        title: title,
-        author: author,
-        coverUrl: coverUrl,
-        rating: rating,
-        text: text,
-        quote: quote,
-        chapter: chapter,
-        progress: progress,
-        badgeId: badgeId,
-        badgeTitle: badgeTitle,
-        reactions: reactions ?? this.reactions,
-        commentCount: commentCount ?? this.commentCount,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+  Post copyWith({Map<ReactionType, int>? reactions, int? commentCount}) => Post(
+    id: id,
+    authorUid: authorUid,
+    authorUsername: authorUsername,
+    authorDisplayName: authorDisplayName,
+    type: type,
+    visibility: visibility,
+    bookKey: bookKey,
+    title: title,
+    author: author,
+    coverUrl: coverUrl,
+    rating: rating,
+    text: text,
+    quote: quote,
+    chapter: chapter,
+    progress: progress,
+    badgeId: badgeId,
+    badgeTitle: badgeTitle,
+    reactions: reactions ?? this.reactions,
+    commentCount: commentCount ?? this.commentCount,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
 }
 
 /// What the app wants to publish; turned into the exact document the rules
@@ -333,7 +332,9 @@ class PostDraft {
       'coverUrl': book == null ? '' : _clip(book.coverUrl, 500),
       'rating': isRated ? rating.clamp(1, 5) : 0,
       'text': type == PostType.rating ? '' : _clip(text, CommunityLimits.text),
-      'quote': type == PostType.quote ? _clip(quote, CommunityLimits.quote) : '',
+      'quote': type == PostType.quote
+          ? _clip(quote, CommunityLimits.quote)
+          : '',
       'chapter': _clip(chapter, CommunityLimits.chapter),
       'progress': type == PostType.progress ? progress.clamp(1, 99) : 0,
       'badgeId': type == PostType.badge

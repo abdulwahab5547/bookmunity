@@ -99,7 +99,11 @@ class CommunityRepository {
 
   /// Creates [postId] unless it already exists (one "finished" post per
   /// book, one post per badge, ...). Returns whether it was created.
-  Future<bool> createPostOnce(String postId, PostDraft draft, Profile me) async {
+  Future<bool> createPostOnce(
+    String postId,
+    PostDraft draft,
+    Profile me,
+  ) async {
     final ref = _posts.doc(postId);
     if ((await ref.get()).exists) return false;
     await ref.set(draft.toCreateMap(me));
@@ -176,7 +180,8 @@ class CommunityRepository {
         if (before == type) return;
         final postRef = _posts.doc(postId);
         transaction.update(postRef, {
-          if (before != null) 'reactions.${before.name}': FieldValue.increment(-1),
+          if (before != null)
+            'reactions.${before.name}': FieldValue.increment(-1),
           if (type != null) 'reactions.${type.name}': FieldValue.increment(1),
         });
         if (type == null) {
@@ -262,12 +267,12 @@ class CommunityRepository {
 
   Stream<List<PublicBadge>> watchBadges(String owner) =>
       _user(owner, 'badges').snapshots().map(
-        (snapshot) =>
-            snapshot.docs.map(PublicBadge.fromDoc).toList()..sort(
-              (a, b) => (b.unlockedAt ?? DateTime(0)).compareTo(
-                a.unlockedAt ?? DateTime(0),
-              ),
+        (snapshot) => snapshot.docs.map(PublicBadge.fromDoc).toList()
+          ..sort(
+            (a, b) => (b.unlockedAt ?? DateTime(0)).compareTo(
+              a.unlockedAt ?? DateTime(0),
             ),
+          ),
       );
 
   Query<Map<String, dynamic>> _reviewsBy(String owner) =>
@@ -324,9 +329,8 @@ class _QuerySource implements PagedSource<Post> {
     if (last != null) query = query.startAfterDocument(last);
     final result = await query.limit(count).get();
     if (result.docs.isNotEmpty) _last = result.docs.last;
-    return SourcePage(
-      [for (final doc in result.docs) ?Post.fromDoc(doc)],
-      exhausted: result.docs.length < count,
-    );
+    return SourcePage([
+      for (final doc in result.docs) ?Post.fromDoc(doc),
+    ], exhausted: result.docs.length < count);
   }
 }

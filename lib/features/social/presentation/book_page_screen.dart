@@ -35,7 +35,9 @@ class BookPageScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(bookRatingProvider(key));
-          await ref.read(feedProvider(FeedQuery.bookQuotes(key)).notifier).refresh();
+          await ref
+              .read(feedProvider(FeedQuery.bookQuotes(key)).notifier)
+              .refresh();
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -133,7 +135,9 @@ class BookPageScreen extends ConsumerWidget {
                         ? null
                         : () => ref
                               .read(
-                                feedProvider(FeedQuery.bookQuotes(key)).notifier,
+                                feedProvider(
+                                  FeedQuery.bookQuotes(key),
+                                ).notifier,
                               )
                               .loadMore(),
                     child: const Text('More quotes'),

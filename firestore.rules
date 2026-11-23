@@ -845,20 +845,11 @@ service cloud.firestore {
       allow read: if isAuthenticated();
     }
 
-    // Public profile pieces read by the profile page. Friend lists are
-    // public like on Goodreads, so anyone signed in can count them; writes
-    // stay with the rules above. Library and badges are written by the
-    // sync feature (its rules are elsewhere); these read rules mirror
-    // docs/cloud-data.md and are harmless duplicates once both exist.
+    // Friend lists are public like on Goodreads, so profiles can count
+    // them (aggregate count()); writes stay with the friends rules above.
+    // Shelves (library) and badges are readable via the personal library
+    // sync block.
     match /users/{ownerUid}/friends/{friendUid} {
-      allow read: if isAuthenticated();
-    }
-
-    match /users/{ownerUid}/library/{bookKey} {
-      allow read: if isAuthenticated();
-    }
-
-    match /users/{ownerUid}/badges/{badgeId} {
       allow read: if isAuthenticated();
     }
 

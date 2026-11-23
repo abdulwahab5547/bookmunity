@@ -183,8 +183,9 @@ const areSampleFriends = (a, b) => friendPairs.has(`${a}|${b}`);
 let libraryWarned = false;
 
 // Public bookshelf (users/{uid}/library) and badges (users/{uid}/badges),
-// in the layout of docs/cloud-data.md. The app's sync feature owns writing
-// these; if its rules are not deployed yet the shelf is skipped.
+// in the layout of docs/cloud-data.md ("Personal library"). The app's sync
+// feature owns writing these; if its rules are not deployed yet the shelf
+// is skipped. Doc ids follow bookDocId() in lib/core/sync/remote_store.dart.
 async function seedShelf(uid, user) {
   try {
     const batch = writeBatch(db);
@@ -197,18 +198,22 @@ async function seedShelf(uid, user) {
         shelf,
         progress,
         addedAt: daysAgo(ago + 30),
-        ...(shelf !== 'wantToRead' ? { startedAt: daysAgo(ago + 10), lastOpenedAt: daysAgo(ago) } : {}),
+        ...(shelf !== 'wantToRead' ? { lastOpenedAt: daysAgo(ago) } : {}),
         ...(shelf === 'finished' ? { finishedAt: daysAgo(ago) } : {}),
         sourceUrl: sourceUrl(book),
         coverUrl: coverUrl(book),
         deleted: false,
-        updatedAt: serverTimestamp(),
+        // Sync clocks (docs/cloud-data.md): edit time + server time.
+        updatedAt: Timestamp.now(),
+        syncedAt: serverTimestamp(),
       });
     }
     user.badges.forEach((badgeId, index) => {
       batch.set(doc(db, 'users', uid, 'badges', badgeId), {
         badgeId,
         unlockedAt: daysAgo(5 + index * 9),
+        updatedAt: Timestamp.now(),
+        syncedAt: serverTimestamp(),
       });
     });
     await batch.commit();

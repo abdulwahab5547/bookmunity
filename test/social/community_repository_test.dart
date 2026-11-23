@@ -220,10 +220,7 @@ void main() {
         .collection('posts')
         .doc('a_2')
         .set(postDoc('a', 2, visibility: 'friends'));
-    await db
-        .collection('posts')
-        .doc('a_3')
-        .set(postDoc('a', 3, type: 'quote'));
+    await db.collection('posts').doc('a_3').set(postDoc('a', 3, type: 'quote'));
     Future<List<String>> ids(bool friends, {PostType? type}) async =>
         (await repo
                 .postsBy('a', includeFriendsOnly: friends, type: type)

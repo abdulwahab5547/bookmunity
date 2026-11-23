@@ -47,7 +47,10 @@ void main() {
       expect(post.reactionTotal, 4);
       expect(post.topReactions.first, ReactionType.like);
       expect(post.commentCount, 4);
-      expect(post.createdAt!.isAtSameMomentAs(DateTime.utc(2026, 1, 2)), isTrue);
+      expect(
+        post.createdAt!.isAtSameMomentAs(DateTime.utc(2026, 1, 2)),
+        isTrue,
+      );
       expect(post.book?.title, 'Dracula');
     });
 
@@ -168,10 +171,7 @@ void main() {
 
   test('post ids start with the author uid', () {
     expect(PostIds.review('u1', 'a/b'), 'u1_review_a-b');
-    expect(
-      PostIds.update('u1', PostType.finished, 'x|y'),
-      'u1_finished_x|y',
-    );
+    expect(PostIds.update('u1', PostType.finished, 'x|y'), 'u1_finished_x|y');
     expect(PostIds.badge('u1', 'bookworm'), 'u1_badge_bookworm');
     expect(PostIds.random('u1', 'abc'), 'u1_abc');
   });
@@ -252,9 +252,7 @@ void main() {
     });
 
     test('empty sources end the feed', () async {
-      final pager = MergedPager<int>([
-        _ListSource([]),
-      ], timeOf: (_) => null);
+      final pager = MergedPager<int>([_ListSource([])], timeOf: (_) => null);
       expect(await pager.next(5), isEmpty);
       expect(pager.hasMore, isFalse);
     });

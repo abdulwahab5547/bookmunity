@@ -205,9 +205,7 @@ class _PostCardState extends ConsumerState<PostCard> {
 
   void _snack(String text) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(text)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   Future<void> _pickReaction(ReactionType? current) async {

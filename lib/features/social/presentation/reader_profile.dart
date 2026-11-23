@@ -43,17 +43,18 @@ List<ShelfEntry> localShelf(List<Book> books) => [
 ];
 
 /// Badge ids to show; own profile falls back to this device's unlocks.
-final profileBadgesProvider = Provider.autoDispose
-    .family<List<String>, String>((ref, uid) {
-      final cloud =
-          ref.watch(badgeUnlocksOfProvider(uid)).valueOrNull ?? const [];
-      final isMe = ref.watch(communityRepositoryProvider)?.uid == uid;
-      if (cloud.isNotEmpty || !isMe) {
-        return [for (final badge in cloud) badge.badgeId];
-      }
-      final local = ref.watch(badgeUnlocksProvider).valueOrNull ?? const [];
-      return [for (final unlock in local) unlock.badgeId];
-    });
+final profileBadgesProvider = Provider.autoDispose.family<List<String>, String>(
+  (ref, uid) {
+    final cloud =
+        ref.watch(badgeUnlocksOfProvider(uid)).valueOrNull ?? const [];
+    final isMe = ref.watch(communityRepositoryProvider)?.uid == uid;
+    if (cloud.isNotEmpty || !isMe) {
+      return [for (final badge in cloud) badge.badgeId];
+    }
+    final local = ref.watch(badgeUnlocksProvider).valueOrNull ?? const [];
+    return [for (final unlock in local) unlock.badgeId];
+  },
+);
 
 /// Goodreads-style profile: header, numbers, shelves, badges, ratings,
 /// quotes and updates.
@@ -110,7 +111,10 @@ class ReaderProfileView extends ConsumerWidget {
               ),
               ('${stats?.friends ?? '–'}', 'Friends'),
               ('${profile.currentStreak}', 'Day streak'),
-              ('${badges.length > profile.badgeCount ? badges.length : profile.badgeCount}', 'Badges'),
+              (
+                '${badges.length > profile.badgeCount ? badges.length : profile.badgeCount}',
+                'Badges',
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -372,7 +376,10 @@ class ShelfScreen extends StatelessWidget {
                           ],
                         )
                       else
-                        Text('Want to read', style: theme.textTheme.labelMedium),
+                        Text(
+                          'Want to read',
+                          style: theme.textTheme.labelMedium,
+                        ),
                     ],
                   ),
                 ),
