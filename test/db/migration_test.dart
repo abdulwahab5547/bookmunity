@@ -11,35 +11,46 @@ void main() {
 
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
-  test('upgrading v3 -> v4 produces the expected schema', () async {
+  test('upgrading v3 -> latest produces the expected schema', () async {
     final connection = await verifier.startAt(3);
     final database = AppDatabase(connection);
-    await verifier.migrateAndValidate(database, 4);
+    await verifier.migrateAndValidate(database, 5);
+    await database.close();
+  });
+
+  test('upgrading v4 -> v5 produces the expected schema', () async {
+    final connection = await verifier.startAt(4);
+    final database = AppDatabase(connection);
+    await verifier.migrateAndValidate(database, 5);
     await database.close();
   });
 
   test('upgrading v3 -> v4 keeps books and highlights', () async {
     final schema = await verifier.schemaAt(3);
     final old = v3.DatabaseAtV3(schema.newConnection());
-    await old.into(old.books).insert(
-      v3.BooksCompanion.insert(
-        title: 'Alice',
-        filePath: '/books/a.epub',
-        fileHash: 'hash-a',
-        addedAt: DateTime(2026, 1, 1).millisecondsSinceEpoch ~/ 1000,
-        progressPercent: const Value(42),
-        lastCfi: const Value('epubcfi(/6/4!/4/2/1:0)'),
-      ),
-    );
-    await old.into(old.highlights).insert(
-      v3.HighlightsCompanion.insert(
-        bookId: 1,
-        cfiRange: 'epubcfi(/6/4!/4/2,/1:0,/1:5)',
-        selectedText: 'Alice',
-        createdAt: 0,
-        updatedAt: 0,
-      ),
-    );
+    await old
+        .into(old.books)
+        .insert(
+          v3.BooksCompanion.insert(
+            title: 'Alice',
+            filePath: '/books/a.epub',
+            fileHash: 'hash-a',
+            addedAt: DateTime(2026, 1, 1).millisecondsSinceEpoch ~/ 1000,
+            progressPercent: const Value(42),
+            lastCfi: const Value('epubcfi(/6/4!/4/2/1:0)'),
+          ),
+        );
+    await old
+        .into(old.highlights)
+        .insert(
+          v3.HighlightsCompanion.insert(
+            bookId: 1,
+            cfiRange: 'epubcfi(/6/4!/4/2,/1:0,/1:5)',
+            selectedText: 'Alice',
+            createdAt: 0,
+            updatedAt: 0,
+          ),
+        );
     await old.close();
 
     final database = AppDatabase(schema.newConnection());

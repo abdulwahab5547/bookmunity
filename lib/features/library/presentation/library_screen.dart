@@ -11,7 +11,6 @@ import '../../../screens/settings_screen.dart';
 import '../../achievements/data/achievement_service.dart';
 import '../../book_detail/presentation/book_detail_screen.dart';
 import '../../reader/presentation/reader_screen.dart';
-import '../../social/presentation/friends_screen.dart';
 import '../../stats/presentation/stats_screen.dart';
 
 enum _Shelf { all, wantToRead, currentlyReading, finished }
@@ -117,11 +116,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             tooltip: grid ? 'List view' : 'Grid view',
             onPressed: _toggleLayout,
             icon: Icon(grid ? Icons.view_list_outlined : Icons.grid_view),
-          ),
-          IconButton(
-            tooltip: 'Friends',
-            onPressed: () => _push(const FriendsScreen()),
-            icon: const Icon(Icons.people_outline),
           ),
           IconButton(
             tooltip: 'Reading stats and badges',

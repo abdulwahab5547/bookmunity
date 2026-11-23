@@ -198,6 +198,17 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sourceUrlMeta = const VerificationMeta(
+    'sourceUrl',
+  );
+  @override
+  late final GeneratedColumn<String> sourceUrl = GeneratedColumn<String>(
+    'source_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -217,6 +228,7 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     finishedAt,
     genre,
     locationsJson,
+    sourceUrl,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -349,6 +361,12 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
         ),
       );
     }
+    if (data.containsKey('source_url')) {
+      context.handle(
+        _sourceUrlMeta,
+        sourceUrl.isAcceptableOrUnknown(data['source_url']!, _sourceUrlMeta),
+      );
+    }
     return context;
   }
 
@@ -426,6 +444,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
         DriftSqlType.string,
         data['${effectivePrefix}locations_json'],
       ),
+      sourceUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_url'],
+      ),
     );
   }
 
@@ -453,6 +475,11 @@ class Book extends DataClass implements Insertable<Book> {
   final DateTime? finishedAt;
   final String? genre;
   final String? locationsJson;
+
+  /// Where the EPUB was downloaded from (Discover), so the file can be
+  /// fetched again after a reinstall. Null for books imported from the
+  /// device.
+  final String? sourceUrl;
   const Book({
     required this.id,
     required this.title,
@@ -471,6 +498,7 @@ class Book extends DataClass implements Insertable<Book> {
     this.finishedAt,
     this.genre,
     this.locationsJson,
+    this.sourceUrl,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -505,6 +533,9 @@ class Book extends DataClass implements Insertable<Book> {
     }
     if (!nullToAbsent || locationsJson != null) {
       map['locations_json'] = Variable<String>(locationsJson);
+    }
+    if (!nullToAbsent || sourceUrl != null) {
+      map['source_url'] = Variable<String>(sourceUrl);
     }
     return map;
   }
@@ -542,6 +573,9 @@ class Book extends DataClass implements Insertable<Book> {
       locationsJson: locationsJson == null && nullToAbsent
           ? const Value.absent()
           : Value(locationsJson),
+      sourceUrl: sourceUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceUrl),
     );
   }
 
@@ -568,6 +602,7 @@ class Book extends DataClass implements Insertable<Book> {
       finishedAt: serializer.fromJson<DateTime?>(json['finishedAt']),
       genre: serializer.fromJson<String?>(json['genre']),
       locationsJson: serializer.fromJson<String?>(json['locationsJson']),
+      sourceUrl: serializer.fromJson<String?>(json['sourceUrl']),
     );
   }
   @override
@@ -591,6 +626,7 @@ class Book extends DataClass implements Insertable<Book> {
       'finishedAt': serializer.toJson<DateTime?>(finishedAt),
       'genre': serializer.toJson<String?>(genre),
       'locationsJson': serializer.toJson<String?>(locationsJson),
+      'sourceUrl': serializer.toJson<String?>(sourceUrl),
     };
   }
 
@@ -612,6 +648,7 @@ class Book extends DataClass implements Insertable<Book> {
     Value<DateTime?> finishedAt = const Value.absent(),
     Value<String?> genre = const Value.absent(),
     Value<String?> locationsJson = const Value.absent(),
+    Value<String?> sourceUrl = const Value.absent(),
   }) => Book(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -634,6 +671,7 @@ class Book extends DataClass implements Insertable<Book> {
     locationsJson: locationsJson.present
         ? locationsJson.value
         : this.locationsJson,
+    sourceUrl: sourceUrl.present ? sourceUrl.value : this.sourceUrl,
   );
   Book copyWithCompanion(BooksCompanion data) {
     return Book(
@@ -666,6 +704,7 @@ class Book extends DataClass implements Insertable<Book> {
       locationsJson: data.locationsJson.present
           ? data.locationsJson.value
           : this.locationsJson,
+      sourceUrl: data.sourceUrl.present ? data.sourceUrl.value : this.sourceUrl,
     );
   }
 
@@ -688,7 +727,8 @@ class Book extends DataClass implements Insertable<Book> {
           ..write('isFinished: $isFinished, ')
           ..write('finishedAt: $finishedAt, ')
           ..write('genre: $genre, ')
-          ..write('locationsJson: $locationsJson')
+          ..write('locationsJson: $locationsJson, ')
+          ..write('sourceUrl: $sourceUrl')
           ..write(')'))
         .toString();
   }
@@ -712,6 +752,7 @@ class Book extends DataClass implements Insertable<Book> {
     finishedAt,
     genre,
     locationsJson,
+    sourceUrl,
   );
   @override
   bool operator ==(Object other) =>
@@ -733,7 +774,8 @@ class Book extends DataClass implements Insertable<Book> {
           other.isFinished == this.isFinished &&
           other.finishedAt == this.finishedAt &&
           other.genre == this.genre &&
-          other.locationsJson == this.locationsJson);
+          other.locationsJson == this.locationsJson &&
+          other.sourceUrl == this.sourceUrl);
 }
 
 class BooksCompanion extends UpdateCompanion<Book> {
@@ -754,6 +796,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
   final Value<DateTime?> finishedAt;
   final Value<String?> genre;
   final Value<String?> locationsJson;
+  final Value<String?> sourceUrl;
   const BooksCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -772,6 +815,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
     this.finishedAt = const Value.absent(),
     this.genre = const Value.absent(),
     this.locationsJson = const Value.absent(),
+    this.sourceUrl = const Value.absent(),
   });
   BooksCompanion.insert({
     this.id = const Value.absent(),
@@ -791,6 +835,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
     this.finishedAt = const Value.absent(),
     this.genre = const Value.absent(),
     this.locationsJson = const Value.absent(),
+    this.sourceUrl = const Value.absent(),
   }) : title = Value(title),
        filePath = Value(filePath),
        fileHash = Value(fileHash),
@@ -813,6 +858,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Expression<DateTime>? finishedAt,
     Expression<String>? genre,
     Expression<String>? locationsJson,
+    Expression<String>? sourceUrl,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -832,6 +878,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
       if (finishedAt != null) 'finished_at': finishedAt,
       if (genre != null) 'genre': genre,
       if (locationsJson != null) 'locations_json': locationsJson,
+      if (sourceUrl != null) 'source_url': sourceUrl,
     });
   }
 
@@ -853,6 +900,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Value<DateTime?>? finishedAt,
     Value<String?>? genre,
     Value<String?>? locationsJson,
+    Value<String?>? sourceUrl,
   }) {
     return BooksCompanion(
       id: id ?? this.id,
@@ -872,6 +920,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
       finishedAt: finishedAt ?? this.finishedAt,
       genre: genre ?? this.genre,
       locationsJson: locationsJson ?? this.locationsJson,
+      sourceUrl: sourceUrl ?? this.sourceUrl,
     );
   }
 
@@ -929,6 +978,9 @@ class BooksCompanion extends UpdateCompanion<Book> {
     if (locationsJson.present) {
       map['locations_json'] = Variable<String>(locationsJson.value);
     }
+    if (sourceUrl.present) {
+      map['source_url'] = Variable<String>(sourceUrl.value);
+    }
     return map;
   }
 
@@ -951,7 +1003,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
           ..write('isFinished: $isFinished, ')
           ..write('finishedAt: $finishedAt, ')
           ..write('genre: $genre, ')
-          ..write('locationsJson: $locationsJson')
+          ..write('locationsJson: $locationsJson, ')
+          ..write('sourceUrl: $sourceUrl')
           ..write(')'))
         .toString();
   }
@@ -2921,6 +2974,7 @@ typedef $$BooksTableCreateCompanionBuilder =
       Value<DateTime?> finishedAt,
       Value<String?> genre,
       Value<String?> locationsJson,
+      Value<String?> sourceUrl,
     });
 typedef $$BooksTableUpdateCompanionBuilder =
     BooksCompanion Function({
@@ -2941,6 +2995,7 @@ typedef $$BooksTableUpdateCompanionBuilder =
       Value<DateTime?> finishedAt,
       Value<String?> genre,
       Value<String?> locationsJson,
+      Value<String?> sourceUrl,
     });
 
 final class $$BooksTableReferences
@@ -3074,6 +3129,11 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
 
   ColumnFilters<String> get locationsJson => $composableBuilder(
     column: $table.locationsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceUrl => $composableBuilder(
+    column: $table.sourceUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3221,6 +3281,11 @@ class $$BooksTableOrderingComposer
     column: $table.locationsJson,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get sourceUrl => $composableBuilder(
+    column: $table.sourceUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BooksTableAnnotationComposer
@@ -3294,6 +3359,9 @@ class $$BooksTableAnnotationComposer
     column: $table.locationsJson,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get sourceUrl =>
+      $composableBuilder(column: $table.sourceUrl, builder: (column) => column);
 
   Expression<T> highlightsRefs<T extends Object>(
     Expression<T> Function($$HighlightsTableAnnotationComposer a) f,
@@ -3391,6 +3459,7 @@ class $$BooksTableTableManager
                 Value<DateTime?> finishedAt = const Value.absent(),
                 Value<String?> genre = const Value.absent(),
                 Value<String?> locationsJson = const Value.absent(),
+                Value<String?> sourceUrl = const Value.absent(),
               }) => BooksCompanion(
                 id: id,
                 title: title,
@@ -3409,6 +3478,7 @@ class $$BooksTableTableManager
                 finishedAt: finishedAt,
                 genre: genre,
                 locationsJson: locationsJson,
+                sourceUrl: sourceUrl,
               ),
           createCompanionCallback:
               ({
@@ -3429,6 +3499,7 @@ class $$BooksTableTableManager
                 Value<DateTime?> finishedAt = const Value.absent(),
                 Value<String?> genre = const Value.absent(),
                 Value<String?> locationsJson = const Value.absent(),
+                Value<String?> sourceUrl = const Value.absent(),
               }) => BooksCompanion.insert(
                 id: id,
                 title: title,
@@ -3447,6 +3518,7 @@ class $$BooksTableTableManager
                 finishedAt: finishedAt,
                 genre: genre,
                 locationsJson: locationsJson,
+                sourceUrl: sourceUrl,
               ),
           withReferenceMapper: (p0) => p0
               .map(

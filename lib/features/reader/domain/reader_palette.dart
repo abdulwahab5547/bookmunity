@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../design/brutal_theme.dart';
 import '../../../providers/settings_providers.dart';
 
 /// Colours for the reader surface. They must match `THEMES` in
@@ -42,6 +43,37 @@ class ReaderPalette {
   final Color muted;
   final Color panel;
   final bool isDark;
+
+  /// Theme for everything drawn over the page: toolbars, the dictionary
+  /// preview, sheets and dialogs. It is built for the page's own
+  /// brightness, not the app's, so a light page on a phone in dark mode
+  /// does not get the app's light text (that made meanings unreadable).
+  ThemeData theme() {
+    final base = brutalTheme(dark: isDark);
+    return base.copyWith(
+      colorScheme: base.colorScheme.copyWith(
+        surfaceContainerLowest: panel,
+        surfaceContainerLow: panel,
+        surfaceContainer: panel,
+        surfaceContainerHigh: panel,
+        onSurface: foreground,
+        onSurfaceVariant: muted,
+      ),
+      textTheme: base.textTheme
+          .apply(bodyColor: foreground, displayColor: foreground)
+          .copyWith(
+            bodySmall: base.textTheme.bodySmall?.copyWith(color: muted),
+            labelMedium: base.textTheme.labelMedium?.copyWith(color: muted),
+            labelSmall: base.textTheme.labelSmall?.copyWith(color: muted),
+          ),
+      iconTheme: IconThemeData(color: foreground),
+      bottomSheetTheme: base.bottomSheetTheme.copyWith(
+        backgroundColor: panel,
+        modalBackgroundColor: panel,
+      ),
+      dialogTheme: base.dialogTheme.copyWith(backgroundColor: panel),
+    );
+  }
 }
 
 /// Highlight swatches. Index is persisted in `Highlights.color` and must

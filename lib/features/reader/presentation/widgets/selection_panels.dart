@@ -199,12 +199,43 @@ Future<String?> showNoteDialog(
   BuildContext context, {
   String? initial,
   String? quote,
-}) async {
-  final controller = TextEditingController(text: initial ?? '');
-  final result = await showDialog<String>(
+}) {
+  return showDialog<String>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(initial == null ? 'Add note' : 'Edit note'),
+    builder: (context) => _NoteDialog(initial: initial, quote: quote),
+  );
+}
+
+/// Owns its text controller so it is only disposed once the dialog has
+/// finished animating out. Disposing it right after `showDialog` returned
+/// crashed the app: the closing animation still rebuilds the text field.
+class _NoteDialog extends StatefulWidget {
+  const _NoteDialog({this.initial, this.quote});
+
+  final String? initial;
+  final String? quote;
+
+  @override
+  State<_NoteDialog> createState() => _NoteDialogState();
+}
+
+class _NoteDialogState extends State<_NoteDialog> {
+  late final _controller = TextEditingController(text: widget.initial ?? '');
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final quote = widget.quote;
+    return AlertDialog(
+      title: Text(
+        widget.initial?.isNotEmpty == true ? 'Edit note' : 'Add note',
+      ),
+      scrollable: true,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,7 +253,7 @@ Future<String?> showNoteDialog(
               ),
             ),
           TextField(
-            controller: controller,
+            controller: _controller,
             autofocus: true,
             maxLines: 5,
             minLines: 2,
@@ -237,14 +268,12 @@ Future<String?> showNoteDialog(
           child: const Text('Cancel'),
         ),
         TextButton(
-          onPressed: () => Navigator.pop(context, controller.text),
+          onPressed: () => Navigator.pop(context, _controller.text),
           child: const Text('Save'),
         ),
       ],
-    ),
-  );
-  controller.dispose();
-  return result;
+    );
+  }
 }
 
 /// Sheet for an existing highlight: recolour, edit note, define, delete.

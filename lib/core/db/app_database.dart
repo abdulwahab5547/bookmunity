@@ -23,6 +23,11 @@ class Books extends Table {
   DateTimeColumn get finishedAt => dateTime().nullable()();
   TextColumn get genre => text().nullable()();
   TextColumn get locationsJson => text().nullable()();
+
+  /// Where the EPUB was downloaded from (Discover), so the file can be
+  /// fetched again after a reinstall. Null for books imported from the
+  /// device.
+  TextColumn get sourceUrl => text().nullable()();
 }
 
 class Highlights extends Table {
@@ -91,7 +96,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -106,6 +111,9 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(bookmarks);
         await m.createTable(readingSessions);
         await m.createTable(badgeUnlocks);
+      }
+      if (from < 5) {
+        await m.addColumn(books, books.sourceUrl);
       }
     },
     beforeOpen: (details) async {

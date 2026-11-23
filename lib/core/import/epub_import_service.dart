@@ -38,7 +38,17 @@ class EpubImportService {
   }
 
   Future<ImportResult> importFile(PlatformFile source) async {
-    final bytes = await readPlatformFile(source);
+    return importBytes(await readPlatformFile(source), filename: source.name);
+  }
+
+  /// Imports an EPUB held in memory, e.g. downloaded from a public library
+  /// or converted from a PDF. [sourceUrl] is kept so the book can be
+  /// downloaded again later.
+  Future<ImportResult> importBytes(
+    List<int> bytes, {
+    String? filename,
+    String? sourceUrl,
+  }) async {
     final hash = sha256.convert(bytes).toString();
     final existing = await database.findBookByHash(hash);
     if (existing != null) {
@@ -55,7 +65,7 @@ class EpubImportService {
       throw const FormatException('DRM PROTECTED. CANNOT OPEN.');
     }
 
-    final metadata = await _extractMetadata(archive, source.name);
+    final metadata = await _extractMetadata(archive, filename);
     final destination = await writeBookFile(hash, bytes);
     String? coverPath;
     if (metadata.coverBytes != null) {
@@ -73,6 +83,7 @@ class EpubImportService {
         addedAt: now,
         coverPath: Value(coverPath),
         genre: Value(metadata.genre),
+        sourceUrl: Value(sourceUrl),
       ),
     );
     return ImportResult(title: metadata.title, duplicate: false);

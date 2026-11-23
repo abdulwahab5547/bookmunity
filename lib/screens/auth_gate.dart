@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/home_shell.dart';
 import '../controllers/auth_controller.dart';
 import '../design/brand_logo.dart';
-import '../features/library/presentation/library_screen.dart';
 import '../features/social/data/social_models.dart';
 import '../features/social/data/social_providers.dart';
 import '../features/social/presentation/choose_username_screen.dart';
@@ -14,7 +14,7 @@ class AuthGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(firebaseReadyProvider)) return const LibraryScreen();
+    if (!ref.watch(firebaseReadyProvider)) return const HomeShell();
     final user = ref.watch(authUserProvider);
     return user.when(
       loading: () => const BrandLoading(),
@@ -41,7 +41,7 @@ class _ProfileGate extends ConsumerWidget {
       ProfileStatus.missing => ChooseUsernameScreen(
         onSignOut: () => AuthController().logout(),
       ),
-      ProfileStatus.ready || ProfileStatus.unavailable => const LibraryScreen(),
+      ProfileStatus.ready || ProfileStatus.unavailable => const HomeShell(),
     };
   }
 }

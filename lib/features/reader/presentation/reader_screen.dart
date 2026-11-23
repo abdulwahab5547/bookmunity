@@ -560,15 +560,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           if (!didPop && _selection != null) _clearSelection();
         },
         child: Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              surfaceContainerLow: palette.panel,
-              onSurface: palette.foreground,
-              onSurfaceVariant: palette.muted,
-              brightness: palette.isDark ? Brightness.dark : Brightness.light,
-            ),
-            iconTheme: IconThemeData(color: palette.foreground),
-          ),
+          data: palette.theme(),
           child: Scaffold(
             backgroundColor: palette.background,
             body: SafeArea(
