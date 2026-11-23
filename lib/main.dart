@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app_messenger.dart';
+import 'core/sync/sync_providers.dart';
 import 'firebase_options.dart';
 import 'design/brutal_theme.dart';
 import 'features/achievements/data/achievement_service.dart';
@@ -26,6 +28,33 @@ void main() async {
 /// Connects modules that must not import each other directly.
 final appProviderOverrides = [
   badgeUnlockListenersProvider.overrideWith(socialBadgeListeners),
+  currentUidProvider.overrideWith(_signedInUid),
+  syncRestoredListenersProvider.overrideWith(_afterRestore),
+];
+
+/// Per-account data (database file, settings, sync) follows Firebase Auth.
+/// Until the auth stream reports, the persisted user is used so the right
+/// library and theme show from the first frame.
+String? _signedInUid(Ref ref) {
+  if (!ref.watch(firebaseReadyProvider)) return null;
+  final auth = ref.watch(authUserProvider);
+  return auth.hasValue
+      ? auth.value?.uid
+      : FirebaseAuth.instance.currentUser?.uid;
+}
+
+/// After the cloud library is merged in (e.g. on a new device), award any
+/// badges the restored data implies and refresh the public profile stats.
+List<Future<void> Function()> _afterRestore(Ref ref) => [
+  () async {
+    final service = await ref.read(achievementServiceProvider.future);
+    await checkAchievementsWith(
+      service,
+      ref.read(badgeUnlockListenersProvider),
+      announce: false,
+    );
+    await ref.read(socialActivityProvider).syncProfileStats();
+  },
 ];
 
 Future<void> _initializeFirebase() async {

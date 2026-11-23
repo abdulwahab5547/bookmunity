@@ -77,8 +77,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _prepare();
   }
 
+  /// Books restored from the cloud may have no file on this device; the
+  /// book screen offers to download or import it before opening.
   bool get _supported =>
-      readerSupported && !widget.book.filePath.startsWith('web://');
+      readerSupported &&
+      widget.book.filePath != null &&
+      !widget.book.filePath!.startsWith('web://');
 
   Future<void> _prepare() async {
     if (!_supported) return;
@@ -121,7 +125,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           contentType: entry.value.$2,
         );
       }
-      _server = await ReaderServer.start(_book.filePath, assets: loaded);
+      final filePath = _book.filePath;
+      if (filePath == null) {
+        throw StateError('This book is not on this device.');
+      }
+      _server = await ReaderServer.start(filePath, assets: loaded);
       _applyDeviceSettings(ref.read(settingsProvider));
       if (mounted) setState(() {});
     } catch (exception) {
@@ -390,17 +398,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         updatedAt: now,
       ),
     );
-    final highlight = Highlight(
-      id: id,
-      bookId: _book.id,
-      cfiRange: selection.cfiRange,
-      selectedText: selection.text,
-      color: color,
-      note: note?.trim().isEmpty ?? true ? null : note!.trim(),
-      chapterTitle: selection.chapterTitle,
-      createdAt: now,
-      updatedAt: now,
-    );
+    final highlight = await database.getHighlight(id);
+    if (highlight == null) return null;
     _highlights[id] = highlight;
     await _send('addHighlight', _highlightArgs(highlight));
     if (mounted) unawaited(checkAchievements(ref));

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_messenger.dart';
 import '../../../core/db/app_database.dart';
+import '../../../core/sync/sync_providers.dart';
 import '../../../providers/app_providers.dart';
 import '../domain/achievement_calculator.dart';
 import '../domain/badges.dart';
@@ -17,17 +18,25 @@ List<BookProgress> _bookProgress(List<Book> books) => [
     ),
 ];
 
-List<SessionRecord> _sessionRecords(List<ReadingSession> sessions) => [
-  for (final session in sessions)
-    SessionRecord(
-      bookId: session.bookId,
-      startedAt: session.startedAt,
-      endedAt: session.endedAt,
-      durationSeconds: session.durationSeconds,
-      startPercent: session.startPercent,
-      endPercent: session.endPercent,
-    ),
-];
+/// Sessions restored from the cloud may belong to books that are not in the
+/// local library, so they are grouped by book key when it is known.
+List<SessionRecord> _sessionRecords(List<ReadingSession> sessions) {
+  final keyIds = <String, int>{};
+  int groupId(ReadingSession session) => session.bookKey.isEmpty
+      ? session.bookId
+      : keyIds.putIfAbsent(session.bookKey, () => -1 - keyIds.length);
+  return [
+    for (final session in sessions)
+      SessionRecord(
+        bookId: groupId(session),
+        startedAt: session.startedAt,
+        endedAt: session.endedAt,
+        durationSeconds: session.durationSeconds,
+        startPercent: session.startPercent,
+        endPercent: session.endPercent,
+      ),
+  ];
+}
 
 class AchievementService {
   AchievementService(
@@ -128,6 +137,10 @@ final badgeUnlockListenersProvider = Provider<List<BadgeUnlockListener>>(
 /// Checks for new badges and announces them. Safe to call often.
 Future<void> checkAchievements(WidgetRef ref, {bool announce = true}) async {
   try {
+    // A library still being restored from the cloud would look like fresh
+    // progress; wait until it has been merged in.
+    await ref.read(syncReadyProvider.future);
+    if (!ref.context.mounted) return;
     final service = await ref.read(achievementServiceProvider.future);
     await checkAchievementsWith(
       service,
