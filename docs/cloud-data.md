@@ -19,8 +19,8 @@ and merging" below.
 | `usernames/{name}` | anyone (get) | owner (create) | username → uid |
 | `avatars/{uid}` | signed in | owner | base64 JPEG |
 | `friendRequests/{from_to}` | the two users | sender / recipient | |
-| `users/{uid}/friends/{otherUid}` | owner | either friend | |
-| `users/{uid}/activity/{id}` | owner + friends | owner | legacy friends feed |
+| `users/{uid}/friends/{otherUid}` | signed in (public friend list, counted on profiles) | either friend | |
+| `users/{uid}/activity/{id}` | owner + friends | owner | legacy friends feed: no longer written or shown by the app (replaced by `posts`); kept readable for older app versions |
 | `books/{bookKey}/reviews/{uid}` | signed in | owner | one review per reader per book |
 
 ## Personal library (sync feature owns writing these)
@@ -136,8 +136,77 @@ with no sync. Book files are shared by hash; library rows never are.
 
 ## Community (social feature owns these)
 
-The social feature defines `posts/...` (updates, reviews, ratings, quotes)
-with reactions and threaded comments. It reads `users/{uid}/library` to
-show a reader's bookshelf on their profile; it must not write it from app
-code (the seed script may write sample readers' libraries). Ratings live
-with reviews (`books/{bookKey}/reviews/{uid}`), not in the library doc.
+Rules: the `COMMUNITY` block at the end of `firestore.rules`. Code:
+`lib/features/social/data/community_*.dart`. The feature reads
+`users/{uid}/library` and `users/{uid}/badges` for profiles (skipping
+`deleted` entries) but never writes them; only the seed script does, for
+sample readers. Ratings live with reviews (`books/{bookKey}/reviews/{uid}`),
+not in the library doc.
+
+| Path | Read | Write | Fields |
+|---|---|---|---|
+| `posts/{postId}` | signed in: `public` posts; `friends` posts by the author and their friends | author creates/edits/deletes; anyone may change counters only together with their own reaction or a comment | authorUid, authorUsername, authorDisplayName (== profile), type, visibility, bookKey, title, author, coverUrl, rating, text, quote, chapter, progress, badgeId, badgeTitle, reactions {like, love, haha, wow, sad}, commentCount, commentOpId, createdAt, updatedAt |
+| `posts/{postId}/reactions/{uid}` | whoever can read the post | that reader | uid, type, username, displayName, updatedAt |
+| `posts/{postId}/comments/{id}` | whoever can read the post | create: any reader of the post; delete: comment author, post author, or (replies) the thread's author | authorUid, authorUsername, authorDisplayName, text (1–1000), parentId ('' or a top-level comment id), createdAt |
+
+### Post types
+
+| type | Made when | Content |
+|---|---|---|
+| `started` | shelf → Currently reading, or a book is first opened | book |
+| `finished` | the reader reaches the end, or shelf → Read | book |
+| `shelved` | shelf → Want to read | book |
+| `progress` | reading passes 50% | book, progress = 50 |
+| `review` / `rating` | a review is saved (`rating` when there is no text); re-saving updates the same post, deleting the review deletes it | book, rating 1–5, text |
+| `quote` | "Share as quote" on a highlight (reader sheet or highlights list) | book, quote (≤ 1000), text = note, chapter, visibility chosen by the reader |
+| `badge` | a badge unlocks (at most 3 at once) | badgeId, badgeTitle |
+
+Ids start with the author's uid (the rules enforce it): `{uid}_review_{book}`,
+`{uid}_{started|finished|shelved|progress}_{book}`, `{uid}_badge_{badgeId}`
+are deterministic, so each exists once and saving again never duplicates
+them; quotes use `{uid}_{autoId}`. `{book}` is the bookKey with `/` → `-`
+(`reviewDocKey`), the same key used by `books/{bookKey}`.
+
+Automatic posts (all but quotes) respect the `share_activity` setting; an
+existing review post is still kept in sync when it is off, but no new one is
+made. Quotes are an explicit action and always post.
+
+### Visibility and feeds
+
+- `visibility` is `public` (Everyone) or `friends`. Automatic posts are
+  public; quotes let the reader pick.
+- Everyone: `where visibility == 'public' orderBy createdAt desc`.
+- Friends: `where authorUid in [me + friends] orderBy createdAt desc`, one
+  query per 30 authors (`whereIn` limit), merged newest first client-side
+  (`MergedPager`). The rules evaluate each `in` value, so friends-only posts
+  are allowed only when every listed author is the reader or a friend.
+- A profile lists `authorUid == X` (plus `visibility == 'public'` unless X
+  is the reader or a friend). Book pages list public quotes by `bookKey`.
+- Pagination is cursor based (`startAfterDocument`), 15 posts per page.
+
+### Counters
+
+`reactions` and `commentCount` are counters on the post so feeds don't need
+extra reads, and they cannot be forged:
+
+- Every change goes in one atomic write with the reaction/comment it counts,
+  using `FieldValue.increment` (concurrent writers don't lose updates).
+- The post rule only lets non-authors touch the counters, and only when the
+  reader's reaction doc changed in that same write (`exists` vs
+  `existsAfter`), with each reaction type moving by exactly that change; or
+  when `commentCount` moves by one and the comment named in `commentOpId` is
+  created/deleted in that write.
+- The reaction/comment rules require the matching counter change on the post
+  (`get` vs `getAfter`). Together neither side can change alone.
+- Reactions run in a transaction so the "before" reaction is always current.
+
+Aggregate `count()` / `average()` queries are used where the number belongs
+to someone else's data: a book's rating (`books/{key}/reviews`), a reader's
+ratings (collection group `reviews` where `uid`), and friend counts.
+
+### Deleting
+
+Comments can't be edited. Deleting a top-level comment deletes its replies
+first (one counted write each). Deleting a post deletes the post, then its
+comments and reactions; the rules let anyone delete children of a post that
+no longer exists, so an interrupted clean-up can be finished later.

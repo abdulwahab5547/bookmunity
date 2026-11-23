@@ -145,56 +145,6 @@ class Friend {
   final DateTime? since;
 }
 
-enum ActivityType { started, finished, badge, review }
-
-class Activity {
-  const Activity({
-    required this.id,
-    required this.ownerUid,
-    required this.type,
-    required this.title,
-    required this.author,
-    required this.bookKey,
-    required this.badgeId,
-    required this.badgeTitle,
-    required this.rating,
-    this.createdAt,
-  });
-
-  factory Activity.fromDoc(
-    String ownerUid,
-    DocumentSnapshot<Map<String, dynamic>> doc,
-  ) {
-    final data = doc.data() ?? const {};
-    return Activity(
-      id: doc.id,
-      ownerUid: ownerUid,
-      type: ActivityType.values.firstWhere(
-        (type) => type.name == data['type'],
-        orElse: () => ActivityType.started,
-      ),
-      title: _str(data['title']),
-      author: _str(data['author']),
-      bookKey: _str(data['bookKey']),
-      badgeId: _str(data['badgeId']),
-      badgeTitle: _str(data['badgeTitle']),
-      rating: _int(data['rating']),
-      createdAt: _time(data['createdAt']),
-    );
-  }
-
-  final String id;
-  final String ownerUid;
-  final ActivityType type;
-  final String title;
-  final String author;
-  final String bookKey;
-  final String badgeId;
-  final String badgeTitle;
-  final int rating;
-  final DateTime? createdAt;
-}
-
 class Review {
   const Review({
     required this.uid,

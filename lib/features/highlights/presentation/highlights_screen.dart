@@ -7,6 +7,8 @@ import '../../../providers/app_providers.dart';
 import '../../reader/domain/reader_palette.dart';
 import '../../reader/presentation/reader_screen.dart';
 import '../../reader/presentation/widgets/selection_panels.dart';
+import '../../social/data/social_providers.dart';
+import '../../social/presentation/share_quote_sheet.dart';
 import '../../../design/formatters.dart';
 
 class HighlightsScreen extends ConsumerWidget {
@@ -61,7 +63,7 @@ class HighlightsScreen extends ConsumerWidget {
   }
 }
 
-class _HighlightCard extends StatelessWidget {
+class _HighlightCard extends ConsumerWidget {
   const _HighlightCard({
     required this.book,
     required this.highlight,
@@ -73,7 +75,7 @@ class _HighlightCard extends StatelessWidget {
   final AppDatabase database;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return BrutalCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
@@ -173,6 +175,17 @@ class _HighlightCard extends StatelessWidget {
                         }
                       },
                     ),
+                    if (ref.watch(socialRepositoryProvider) != null)
+                      IconButton(
+                        tooltip: 'Share as quote',
+                        icon: const Icon(Icons.format_quote_outlined, size: 20),
+                        onPressed: () => shareHighlightAsQuote(
+                          context,
+                          ref,
+                          book: book,
+                          highlight: highlight,
+                        ),
+                      ),
                     IconButton(
                       tooltip: 'Delete highlight',
                       icon: const Icon(Icons.delete_outline, size: 20),

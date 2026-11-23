@@ -17,6 +17,7 @@ import '../../achievements/data/achievement_service.dart';
 import '../../dictionary/dictionary_providers.dart' show packStoreProvider;
 import '../../dictionary/dictionary_view.dart';
 import '../../social/data/social_providers.dart';
+import '../../social/presentation/share_quote_sheet.dart';
 import '../data/reader_bridge.dart';
 import '../domain/reader_palette.dart';
 import '../domain/reading_session_tracker.dart';
@@ -72,12 +73,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   final _search = ReaderSearchController();
   Timer? _saveTimer;
   bool _finishedAnnounced = false;
+  bool _halfwayAnnounced = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _finishedAnnounced = widget.book.isFinished;
+    _halfwayAnnounced = widget.book.progressPercent >= 50;
     _prepare();
   }
 
@@ -243,6 +246,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         });
         _tracker.signal(DateTime.now(), percent: _percent);
         _schedulePositionSave();
+        final percentage = location.percentage;
+        if (!_halfwayAnnounced &&
+            percentage != null &&
+            percentage >= 0.5 &&
+            percentage < 0.95) {
+          _halfwayAnnounced = true;
+          unawaited(ref.read(socialActivityProvider).bookHalfway(_book));
+        }
         if (location.reachedEnd && !_finishedAnnounced) {
           _finishedAnnounced = true;
           _persistPosition();
@@ -482,6 +493,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         bookId: _book.id,
         language: _bookLanguage,
       )),
+      onShare: () => shareHighlightAsQuote(
+        context,
+        ref,
+        book: _book,
+        highlight: _highlights[highlight.id] ?? highlight,
+      ),
     );
   }
 
