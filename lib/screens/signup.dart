@@ -9,6 +9,7 @@ import '../design/brutal_widgets.dart';
 import '../features/social/data/social_providers.dart';
 import '../features/social/data/social_repository.dart';
 import '../features/social/presentation/username_field.dart';
+import 'google_sign_in_button.dart';
 
 class SignupPage extends ConsumerStatefulWidget {
   const SignupPage({super.key});
@@ -179,6 +180,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                         ),
                       ),
                     ),
+                    const GoogleSignInSection(popOnSuccess: true),
                   ],
                 ),
               ),

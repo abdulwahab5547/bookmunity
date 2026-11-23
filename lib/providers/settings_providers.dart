@@ -1,15 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../core/sync/cloud_settings.dart';
+
+// Reader and app settings live in the account's cloud settings map
+// (`users/{uid}/private/settings`, cached on the device). These notifiers are
+// typed views over it; the keys are the ones previously used in
+// SharedPreferences, which are imported once on upgrade.
 
 final settingsProvider =
     StateNotifierProvider<SettingsNotifier, ReaderSettings>((ref) {
-      return SettingsNotifier()..load();
+      final store = ref.watch(cloudSettingsProvider.notifier);
+      final notifier = SettingsNotifier(store)
+        ..apply(ref.read(cloudSettingsProvider));
+      ref.listen(cloudSettingsProvider, (_, next) => notifier.apply(next));
+      return notifier;
     });
 
 final appThemeModeProvider =
     StateNotifierProvider<AppThemeModeNotifier, ThemeMode>((ref) {
-      return AppThemeModeNotifier()..load();
+      final store = ref.watch(cloudSettingsProvider.notifier);
+      final notifier = AppThemeModeNotifier(store)
+        ..apply(ref.read(cloudSettingsProvider));
+      ref.listen(cloudSettingsProvider, (_, next) => notifier.apply(next));
+      return notifier;
     });
 
 enum ReaderFlow { paginated, scrolled }
@@ -113,7 +127,9 @@ T _enumByName<T extends Enum>(List<T> values, String? name, T fallback) {
 }
 
 class SettingsNotifier extends StateNotifier<ReaderSettings> {
-  SettingsNotifier() : super(const ReaderSettings());
+  SettingsNotifier([this._store]) : super(const ReaderSettings());
+
+  final CloudSettingsController? _store;
 
   static const _fontSize = 'reader_font_size';
   static const _lineHeight = 'reader_line_height';
@@ -124,80 +140,102 @@ class SettingsNotifier extends StateNotifier<ReaderSettings> {
   static const _keepAwake = 'reader_keep_awake';
   static const _orientation = 'reader_orientation';
 
-  Future<void> load() async {
-    final preferences = await SharedPreferences.getInstance();
+  /// Reads the typed settings out of the generic map.
+  static ReaderSettings fromMap(CloudSettings settings) {
     const defaults = ReaderSettings();
-    if (!mounted) return;
-    state = ReaderSettings(
-      fontSize: (preferences.getDouble(_fontSize) ?? defaults.fontSize).clamp(
+    double number(String key, double fallback, double min, double max) =>
+        (settings.get<num>(key)?.toDouble() ?? fallback).clamp(min, max);
+    return ReaderSettings(
+      fontSize: number(
+        _fontSize,
+        defaults.fontSize,
         ReaderSettings.minFontSize,
         ReaderSettings.maxFontSize,
       ),
-      lineHeight: (preferences.getDouble(_lineHeight) ?? defaults.lineHeight)
-          .clamp(ReaderSettings.minLineHeight, ReaderSettings.maxLineHeight),
-      margin: (preferences.getDouble(_margin) ?? defaults.margin).clamp(
+      lineHeight: number(
+        _lineHeight,
+        defaults.lineHeight,
+        ReaderSettings.minLineHeight,
+        ReaderSettings.maxLineHeight,
+      ),
+      margin: number(
+        _margin,
+        defaults.margin,
         ReaderSettings.minMargin,
         ReaderSettings.maxMargin,
       ),
       theme: _enumByName(
         ReaderTheme.values,
-        preferences.getString(_theme),
+        settings.get<String>(_theme),
         defaults.theme,
       ),
       flow: _enumByName(
         ReaderFlow.values,
-        preferences.getString(_flow),
+        settings.get<String>(_flow),
         defaults.flow,
       ),
       font: _enumByName(
         ReaderFont.values,
-        preferences.getString(_font),
+        settings.get<String>(_font),
         defaults.font,
       ),
       keepScreenAwake:
-          preferences.getBool(_keepAwake) ?? defaults.keepScreenAwake,
+          settings.get<bool>(_keepAwake) ?? defaults.keepScreenAwake,
       orientation: _enumByName(
         ReaderOrientation.values,
-        preferences.getString(_orientation),
+        settings.get<String>(_orientation),
         defaults.orientation,
       ),
     );
   }
 
+  void apply(CloudSettings settings) {
+    final next = fromMap(settings);
+    if (mounted && next != state) state = next;
+  }
+
+  static Map<String, Object> _toMap(ReaderSettings settings) => {
+    _fontSize: settings.fontSize,
+    _lineHeight: settings.lineHeight,
+    _margin: settings.margin,
+    _theme: settings.theme.name,
+    _flow: settings.flow.name,
+    _font: settings.font.name,
+    _keepAwake: settings.keepScreenAwake,
+    _orientation: settings.orientation.name,
+  };
+
+  /// Saves only the settings that changed, so another device's edit to a
+  /// different setting is not overwritten.
   Future<void> update(ReaderSettings next) async {
+    final before = _toMap(state);
     state = next;
-    final preferences = await SharedPreferences.getInstance();
-    await Future.wait([
-      preferences.setDouble(_fontSize, next.fontSize),
-      preferences.setDouble(_lineHeight, next.lineHeight),
-      preferences.setDouble(_margin, next.margin),
-      preferences.setString(_theme, next.theme.name),
-      preferences.setString(_flow, next.flow.name),
-      preferences.setString(_font, next.font.name),
-      preferences.setBool(_keepAwake, next.keepScreenAwake),
-      preferences.setString(_orientation, next.orientation.name),
-    ]);
+    final changed = {
+      for (final entry in _toMap(next).entries)
+        if (before[entry.key] != entry.value) entry.key: entry.value,
+    };
+    if (changed.isNotEmpty) _store?.setAll(changed);
   }
 }
 
 class AppThemeModeNotifier extends StateNotifier<ThemeMode> {
-  AppThemeModeNotifier() : super(ThemeMode.system);
+  AppThemeModeNotifier([this._store]) : super(ThemeMode.system);
+
+  final CloudSettingsController? _store;
 
   static const _key = 'app_theme_mode';
 
-  Future<void> load() async {
-    final preferences = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    state = _enumByName(
+  void apply(CloudSettings settings) {
+    final next = _enumByName(
       ThemeMode.values,
-      preferences.getString(_key),
+      settings.get<String>(_key),
       ThemeMode.system,
     );
+    if (mounted && next != state) state = next;
   }
 
   Future<void> set(ThemeMode mode) async {
     state = mode;
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(_key, mode.name);
+    _store?.set(_key, mode.name);
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controllers/auth_controller.dart';
+import '../core/sync/sync_providers.dart';
 import '../design/brutal_theme.dart';
 import '../design/brutal_widgets.dart';
 import '../features/dictionary/dictionaries_screen.dart';
@@ -161,7 +162,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           BrutalPressable(
-            onPressed: () => _logout(context),
+            onPressed: () => _logout(context, ref),
             backgroundColor: theme.colorScheme.surface,
             foregroundColor: BrutalColors.red,
             child: const Center(child: Text('Log out')),
@@ -186,13 +187,14 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _logout(BuildContext context) async {
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Log out?'),
         content: const Text(
-          'Your books, highlights and badges stay on this device.',
+          'Your library, highlights, stats and badges are saved to your '
+          'account and come back when you log in again.',
         ),
         actions: [
           TextButton(
@@ -207,6 +209,8 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
+    // Send anything not yet uploaded while the account can still write.
+    await flushSync(ref);
     await AuthController().logout();
     if (context.mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
