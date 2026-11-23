@@ -59,7 +59,7 @@ class DictionariesScreen extends ConsumerWidget {
                 label: 'Book’s language',
                 selected: preferences.lookupLanguage == null,
                 onPressed: () => ref
-                    .read(dictionaryPreferencesProvider.notifier)
+                    .read(dictionaryPreferencesControllerProvider)
                     .setLookupLanguage(null),
               ),
               for (final language in [englishLanguage, ...installedLanguages])
@@ -67,7 +67,7 @@ class DictionariesScreen extends ConsumerWidget {
                   label: language.name,
                   selected: preferences.lookupLanguage == language.code,
                   onPressed: () => ref
-                      .read(dictionaryPreferencesProvider.notifier)
+                      .read(dictionaryPreferencesControllerProvider)
                       .setLookupLanguage(language.code),
                 ),
             ],

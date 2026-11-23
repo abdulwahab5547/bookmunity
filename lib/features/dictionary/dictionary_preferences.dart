@@ -1,13 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/sync/cloud_settings.dart';
 import 'language_catalog.dart';
 
-/// The reader's dictionary choices. Settings sync stores [toJson] in
-/// `users/{uid}/private/settings` and applies a synced copy with
-/// [DictionaryPreferencesNotifier.applyJson].
+/// The reader's dictionary choices, stored in the synced settings under
+/// `dictionary.` keys (see [DictionaryPreferences.settingsKeys]).
 class DictionaryPreferences {
   const DictionaryPreferences({this.languages = const {}, this.lookupLanguage});
 
@@ -19,15 +16,9 @@ class DictionaryPreferences {
   /// Language to look words up in, or null to follow each book's language.
   final String? lookupLanguage;
 
-  DictionaryPreferences copyWith({
-    Set<String>? languages,
-    String? Function()? lookupLanguage,
-  }) => DictionaryPreferences(
-    languages: languages ?? this.languages,
-    lookupLanguage: lookupLanguage == null
-        ? this.lookupLanguage
-        : lookupLanguage(),
-  );
+  static const languagesKey = 'dictionary.languages';
+  static const lookupLanguageKey = 'dictionary.lookupLanguage';
+  static const settingsKeys = [languagesKey, lookupLanguageKey];
 
   Map<String, Object?> toJson() => {
     'languages': (languages.toList()..sort()),
@@ -50,6 +41,22 @@ class DictionaryPreferences {
     );
   }
 
+  /// Reads the `dictionary.` keys of the synced settings.
+  factory DictionaryPreferences.fromSettings(CloudSettings settings) =>
+      DictionaryPreferences.fromJson({
+        'languages': settings.values[languagesKey],
+        'lookupLanguage': settings.values[lookupLanguageKey],
+      });
+
+  /// The synced-settings entries for these preferences.
+  Map<String, Object?> toSettings() {
+    final json = toJson();
+    return {
+      languagesKey: json['languages'],
+      lookupLanguageKey: json['lookupLanguage'],
+    };
+  }
+
   @override
   bool operator ==(Object other) =>
       other is DictionaryPreferences &&
@@ -62,54 +69,43 @@ class DictionaryPreferences {
       Object.hash(lookupLanguage, Object.hashAllUnordered(languages));
 }
 
-class DictionaryPreferencesNotifier
-    extends StateNotifier<DictionaryPreferences> {
-  DictionaryPreferencesNotifier() : super(const DictionaryPreferences());
+/// Current preferences; rebuilds only when they change.
+final dictionaryPreferencesProvider = Provider<DictionaryPreferences>(
+  (ref) => DictionaryPreferences.fromSettings(ref.watch(cloudSettingsProvider)),
+);
 
-  static const storageKey = 'dictionary_preferences';
+/// Writes dictionary preferences through the synced settings.
+class DictionaryPreferencesController {
+  DictionaryPreferencesController(this._ref);
 
-  Future<void> load() async {
-    final preferences = await SharedPreferences.getInstance();
-    final raw = preferences.getString(storageKey);
-    if (!mounted || raw == null) return;
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is Map) {
-        state = DictionaryPreferences.fromJson(
-          Map<String, Object?>.from(decoded),
-        );
-      }
-    } on FormatException {
-      // Keep defaults.
-    }
+  final Ref _ref;
+
+  DictionaryPreferences get _current =>
+      _ref.read(dictionaryPreferencesProvider);
+
+  void setLookupLanguage(String? code) => _ref
+      .read(cloudSettingsProvider.notifier)
+      .set(DictionaryPreferences.lookupLanguageKey, code);
+
+  void addLanguage(String code) {
+    final languages = {..._current.languages, code}.toList()..sort();
+    _ref
+        .read(cloudSettingsProvider.notifier)
+        .set(DictionaryPreferences.languagesKey, languages);
   }
 
-  /// Replaces the preferences with a synced copy.
-  Future<void> applyJson(Map<String, Object?> json) =>
-      _set(DictionaryPreferences.fromJson(json));
-
-  Future<void> setLookupLanguage(String? code) =>
-      _set(state.copyWith(lookupLanguage: () => code));
-
-  Future<void> addLanguage(String code) =>
-      _set(state.copyWith(languages: {...state.languages, code}));
-
-  Future<void> removeLanguage(String code) => _set(
-    state.copyWith(
-      languages: {...state.languages}..remove(code),
-      lookupLanguage: state.lookupLanguage == code ? () => null : null,
-    ),
-  );
-
-  Future<void> _set(DictionaryPreferences next) async {
-    if (next == state) return;
-    state = next;
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(storageKey, jsonEncode(next.toJson()));
+  void removeLanguage(String code) {
+    final current = _current;
+    final languages = {...current.languages}..remove(code);
+    _ref.read(cloudSettingsProvider.notifier).setAll({
+      DictionaryPreferences.languagesKey: languages.toList()..sort(),
+      if (current.lookupLanguage == code)
+        DictionaryPreferences.lookupLanguageKey: null,
+    });
   }
 }
 
-final dictionaryPreferencesProvider =
-    StateNotifierProvider<DictionaryPreferencesNotifier, DictionaryPreferences>(
-      (ref) => DictionaryPreferencesNotifier()..load(),
+final dictionaryPreferencesControllerProvider =
+    Provider<DictionaryPreferencesController>(
+      DictionaryPreferencesController.new,
     );

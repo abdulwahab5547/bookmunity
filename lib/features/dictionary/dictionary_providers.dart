@@ -134,8 +134,8 @@ class DictionaryPacksController extends StateNotifier<DictionaryPacksState> {
     });
     try {
       await job.done;
-      await _ref
-          .read(dictionaryPreferencesProvider.notifier)
+      _ref
+          .read(dictionaryPreferencesControllerProvider)
           .addLanguage(language.code);
       _removeTask(language.code);
     } on PackInstallCancelled {
@@ -162,9 +162,7 @@ class DictionaryPacksController extends StateNotifier<DictionaryPacksState> {
     await cancel(code);
     final store = await _store;
     await store.delete(code);
-    await _ref
-        .read(dictionaryPreferencesProvider.notifier)
-        .removeLanguage(code);
+    _ref.read(dictionaryPreferencesControllerProvider).removeLanguage(code);
     await refresh();
   }
 

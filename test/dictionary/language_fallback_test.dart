@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:bookmunity/core/sync/cloud_settings.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bookmunity/features/dictionary/dictionary_preferences.dart';
 import 'package:bookmunity/features/dictionary/dictionary_service.dart';
 import 'package:bookmunity/features/dictionary/language_catalog.dart';
@@ -129,6 +132,36 @@ void main() {
   });
 
   group('preferences', () {
+    test('are stored in the synced settings under dictionary. keys', () async {
+      SharedPreferences.setMockInitialValues({});
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      await container.read(cloudSettingsProvider.notifier).load();
+      final controller = container.read(
+        dictionaryPreferencesControllerProvider,
+      );
+
+      controller.addLanguage('fr');
+      controller.addLanguage('de');
+      controller.setLookupLanguage('fr');
+      expect(
+        container.read(dictionaryPreferencesProvider),
+        const DictionaryPreferences(
+          languages: {'de', 'fr'},
+          lookupLanguage: 'fr',
+        ),
+      );
+      final settings = container.read(cloudSettingsProvider);
+      expect(settings.get<List>('dictionary.languages'), ['de', 'fr']);
+      expect(settings.get<String>('dictionary.lookupLanguage'), 'fr');
+
+      controller.removeLanguage('fr');
+      expect(
+        container.read(dictionaryPreferencesProvider),
+        const DictionaryPreferences(languages: {'de'}),
+      );
+    });
+
     test('round-trip through JSON', () {
       const preferences = DictionaryPreferences(
         languages: {'fr', 'de'},
