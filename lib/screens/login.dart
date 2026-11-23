@@ -4,6 +4,7 @@ import '../controllers/auth_controller.dart';
 import '../design/brand_logo.dart';
 import '../design/brutal_theme.dart';
 import '../design/brutal_widgets.dart';
+import 'google_sign_in_button.dart';
 import 'signup.dart';
 
 class LoginPage extends StatefulWidget {
@@ -154,6 +155,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
+                    const GoogleSignInSection(),
                     const SizedBox(height: 28),
                     Center(
                       child: TextButton(

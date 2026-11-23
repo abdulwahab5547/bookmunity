@@ -64,6 +64,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '162786744614',
     projectId: 'bookmunity',
     storageBucket: 'bookmunity.firebasestorage.app',
+    iosClientId:
+        '162786744614-p9277snncsdon1kiup8pd8677ia4usp3.apps.googleusercontent.com',
     iosBundleId: 'com.example.bookmunity',
   );
 
@@ -73,6 +75,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '162786744614',
     projectId: 'bookmunity',
     storageBucket: 'bookmunity.firebasestorage.app',
+    iosClientId:
+        '162786744614-p9277snncsdon1kiup8pd8677ia4usp3.apps.googleusercontent.com',
     iosBundleId: 'com.example.bookmunity',
   );
 

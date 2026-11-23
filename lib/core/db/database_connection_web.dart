@@ -3,6 +3,9 @@
 
 import 'package:drift/web.dart';
 
-Future<WebDatabase> createDatabaseExecutor() async {
-  return WebDatabase.withStorage(DriftWebStorage.indexedDb('bookmunity'));
+/// One IndexedDB database per account; see database_connection_io.dart.
+Future<WebDatabase> createDatabaseExecutor({String? uid}) async {
+  return WebDatabase.withStorage(
+    DriftWebStorage.indexedDb(uid == null ? 'bookmunity' : 'bookmunity_$uid'),
+  );
 }

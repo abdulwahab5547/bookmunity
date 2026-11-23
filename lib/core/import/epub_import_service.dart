@@ -10,10 +10,18 @@ import 'epub_metadata_extractor.dart';
 import 'import_storage.dart';
 
 class ImportResult {
-  const ImportResult({required this.title, required this.duplicate});
+  const ImportResult({
+    required this.title,
+    required this.duplicate,
+    this.reattached = false,
+  });
 
   final String title;
   final bool duplicate;
+
+  /// The file was attached to a book already in the library (restored from
+  /// the cloud without its file), keeping its progress and highlights.
+  final bool reattached;
 }
 
 class EpubImportService {
@@ -51,7 +59,7 @@ class EpubImportService {
   }) async {
     final hash = sha256.convert(bytes).toString();
     final existing = await database.findBookByHash(hash);
-    if (existing != null) {
+    if (existing != null && !_needsFile(existing)) {
       return ImportResult(title: existing.title, duplicate: true);
     }
 
@@ -72,13 +80,18 @@ class EpubImportService {
       coverPath = await writeCoverFile(hash, 'jpg', metadata.coverBytes!);
     }
 
+    final target = await _reattachTarget(existing, metadata.bookKey);
+    if (target != null) {
+      return _reattach(target, destination, hash, coverPath, sourceUrl);
+    }
+
     final now = DateTime.now();
     await database.addBook(
       BooksCompanion.insert(
         title: metadata.title,
         author: Value(metadata.author),
-        filePath: destination,
-        fileHash: hash,
+        filePath: Value(destination),
+        fileHash: Value(hash),
         bookKey: Value(metadata.bookKey),
         addedAt: now,
         coverPath: Value(coverPath),
@@ -96,16 +109,16 @@ class EpubImportService {
   }
 
   Future<void> refreshMetadata(Book book) async {
-    final bytes = await readStoredBook(book.filePath);
+    final filePath = book.filePath;
+    final fileHash = book.fileHash;
+    // Not on this device: nothing to read metadata from.
+    if (filePath == null || fileHash == null) return;
+    final bytes = await readStoredBook(filePath);
     final archive = ZipDecoder().decodeBytes(bytes);
-    final metadata = await _extractMetadata(archive, book.filePath);
+    final metadata = await _extractMetadata(archive, filePath);
     String? coverPath;
     if (metadata.coverBytes != null) {
-      coverPath = await writeCoverFile(
-        book.fileHash,
-        'jpg',
-        metadata.coverBytes!,
-      );
+      coverPath = await writeCoverFile(fileHash, 'jpg', metadata.coverBytes!);
     }
     await database.updateMetadata(
       book: book,
@@ -129,5 +142,89 @@ class EpubImportService {
       }
     }
     return refreshed;
+  }
+
+  // ------------------------------------------------- re-attach (cloud sync)
+  //
+  // A library restored from the cloud has rows without files. Importing the
+  // same book again attaches the file to that row (matched by hash, else by
+  // bookKey) instead of adding a duplicate, so progress, highlights and
+  // notes are kept. See docs/cloud-data.md.
+
+  bool _needsFile(Book book) => book.deleted || book.filePath == null;
+
+  Future<Book?> _reattachTarget(Book? sameHash, String bookKey) async =>
+      sameHash ?? await database.findBookMissingFile(bookKey);
+
+  Future<ImportResult> _reattach(
+    Book target,
+    String filePath,
+    String hash,
+    String? coverPath,
+    String? sourceUrl,
+  ) async {
+    await database.attachBookFile(
+      id: target.id,
+      filePath: filePath,
+      fileHash: hash,
+      coverPath: coverPath,
+      sourceUrl: sourceUrl,
+    );
+    return ImportResult(
+      title: target.title,
+      duplicate: false,
+      reattached: true,
+    );
+  }
+
+  /// "Import file" on a book that is not on this device.
+  Future<ImportResult?> pickAndReattach(Book book) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['epub'],
+      withData: true,
+    );
+    final selected = result?.files.firstOrNull;
+    if (selected == null) return null;
+    return reattachBytes(
+      book,
+      await readPlatformFile(selected),
+      filename: selected.name,
+    );
+  }
+
+  /// Attaches [bytes] to [book] even if the file's metadata gives a
+  /// different key (another edition, an updated download).
+  Future<ImportResult> reattachBytes(
+    Book book,
+    List<int> bytes, {
+    String? filename,
+    String? sourceUrl,
+  }) async {
+    final hash = sha256.convert(bytes).toString();
+    final owner = await database.findBookByHash(hash);
+    if (owner != null && owner.id != book.id && !_needsFile(owner)) {
+      return ImportResult(title: owner.title, duplicate: true);
+    }
+    final archive = ZipDecoder().decodeBytes(bytes);
+    final names = archive.files.map((file) => file.name).toSet();
+    if (!names.contains('META-INF/container.xml')) {
+      throw const FormatException('NOT A VALID EPUB.');
+    }
+    if (names.contains('META-INF/rights.xml') ||
+        names.contains('META-INF/encryption.xml')) {
+      throw const FormatException('DRM PROTECTED. CANNOT OPEN.');
+    }
+    final metadata = await _extractMetadata(archive, filename);
+    final destination = await writeBookFile(hash, bytes);
+    String? coverPath;
+    if (metadata.coverBytes != null) {
+      coverPath = await writeCoverFile(hash, 'jpg', metadata.coverBytes!);
+    }
+    if (owner != null && owner.id != book.id) {
+      // A deleted or file-less row holds this hash; free it.
+      await database.releaseFileHash(owner.id);
+    }
+    return _reattach(book, destination, hash, coverPath, sourceUrl);
   }
 }

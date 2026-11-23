@@ -306,6 +306,227 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isOwner(ownerUid);
       }
+
+      // ===========================================================
+      // BEGIN personal library sync (lib/core/sync, docs/cloud-data.md)
+      //
+      // users/{uid}/library/{bookKey}        signed-in read (public shelf)
+      // users/{uid}/readingState/{bookKey}   owner only
+      // users/{uid}/highlights/{remoteId}    owner only
+      // users/{uid}/bookmarks/{remoteId}     owner only
+      // users/{uid}/sessions/{remoteId}      owner only
+      // users/{uid}/badges/{badgeId}         signed-in read (public)
+      // users/{uid}/private/settings         owner only
+      //
+      // Every synced document carries:
+      // - updatedAt: timestamp of the edit (client clock; merges keep the
+      //   newer one). At most 1 hour ahead of server time, and an update
+      //   may never move it backwards, so a stale device cannot overwrite
+      //   a newer edit.
+      // - syncedAt: == request.time (FieldValue.serverTimestamp()); clients
+      //   pull changes since their last syncedAt.
+      // Deletes are soft (deleted: true) so other devices see them; hard
+      // deletes are left to the owner (e.g. account removal).
+      // ===========================================================
+      function isSyncTime(value) {
+        return value is timestamp
+          && value <= request.time + duration.value(1, 'h');
+      }
+
+      function isSyncWrite() {
+        return isSyncTime(incoming().updatedAt)
+          && incoming().syncedAt == request.time
+          && (resource == null
+              || !('updatedAt' in resource.data)
+              || incoming().updatedAt >= resource.data.updatedAt);
+      }
+
+      function optString(data, key, max) {
+        return !(key in data) || isString(data[key], 0, max);
+      }
+
+      function optTimestamp(data, key) {
+        return !(key in data) || data[key] is timestamp;
+      }
+
+      function isPercent(value) {
+        return value is number && value >= 0 && value <= 100;
+      }
+
+      // A tombstone may hold only bookKey/deleted/updatedAt/syncedAt (e.g.
+      // the old entry after a book's key changed); a live entry needs the
+      // full set.
+      function isValidLibraryEntry() {
+        let data = incoming();
+        return data.keys().hasOnly(['bookKey', 'title', 'author', 'genre',
+            'shelf', 'progress', 'addedAt', 'finishedAt', 'lastOpenedAt',
+            'sourceUrl', 'coverUrl', 'fileHash', 'deleted', 'updatedAt',
+            'syncedAt'])
+          && data.keys().hasAll(['bookKey', 'deleted', 'updatedAt', 'syncedAt'])
+          && isString(data.bookKey, 1, 400)
+          && data.deleted is bool
+          && (data.deleted == true
+              || data.keys().hasAll(['title', 'author', 'shelf', 'progress',
+                  'addedAt']))
+          && optString(data, 'title', 500)
+          && optString(data, 'author', 500)
+          && optString(data, 'genre', 100)
+          && (!('shelf' in data)
+              || data.shelf in ['wantToRead', 'currentlyReading', 'finished'])
+          && (!('progress' in data) || isPercent(data.progress))
+          && optTimestamp(data, 'addedAt')
+          && optTimestamp(data, 'finishedAt')
+          && optTimestamp(data, 'lastOpenedAt')
+          && optString(data, 'sourceUrl', 2000)
+          && optString(data, 'coverUrl', 2000)
+          && optString(data, 'fileHash', 128);
+      }
+
+      function isValidReadingState() {
+        let data = incoming();
+        return data.keys().hasOnly(['bookKey', 'lastCfi', 'totalLocations',
+            'deleted', 'updatedAt', 'syncedAt'])
+          && data.keys().hasAll(['bookKey', 'updatedAt', 'syncedAt'])
+          && isString(data.bookKey, 1, 400)
+          && optString(data, 'lastCfi', 2000)
+          && (!('totalLocations' in data)
+              || isInt(data.totalLocations, 0, 10000000))
+          && (!('deleted' in data) || data.deleted is bool);
+      }
+
+      function isValidHighlight() {
+        let data = incoming();
+        return data.keys().hasOnly(['bookKey', 'cfiRange', 'selectedText',
+            'color', 'note', 'chapterTitle', 'createdAt', 'updatedAt',
+            'deleted', 'syncedAt'])
+          && data.keys().hasAll(['bookKey', 'cfiRange', 'selectedText', 'color',
+            'createdAt', 'updatedAt', 'deleted', 'syncedAt'])
+          && isString(data.bookKey, 0, 400)
+          && isString(data.cfiRange, 0, 2000)
+          && isString(data.selectedText, 0, 10000)
+          && isInt(data.color, 0, 50)
+          && optString(data, 'note', 10000)
+          && optString(data, 'chapterTitle', 500)
+          && data.createdAt is timestamp
+          && data.deleted is bool;
+      }
+
+      function isValidBookmark() {
+        let data = incoming();
+        return data.keys().hasOnly(['bookKey', 'cfi', 'label', 'percent',
+            'createdAt', 'updatedAt', 'deleted', 'syncedAt'])
+          && data.keys().hasAll(['bookKey', 'cfi', 'percent', 'createdAt',
+            'updatedAt', 'deleted', 'syncedAt'])
+          && isString(data.bookKey, 0, 400)
+          && isString(data.cfi, 0, 2000)
+          && optString(data, 'label', 500)
+          && isPercent(data.percent)
+          && data.createdAt is timestamp
+          && data.deleted is bool;
+      }
+
+      function isValidSession() {
+        let data = incoming();
+        return data.keys().hasOnly(['bookKey', 'startedAt', 'endedAt',
+            'durationSeconds', 'startPercent', 'endPercent', 'updatedAt',
+            'syncedAt'])
+          && data.keys().hasAll(['bookKey', 'startedAt', 'endedAt',
+            'durationSeconds', 'startPercent', 'endPercent', 'updatedAt',
+            'syncedAt'])
+          && isString(data.bookKey, 0, 400)
+          && data.startedAt is timestamp
+          && data.endedAt is timestamp
+          && data.endedAt >= data.startedAt
+          && isInt(data.durationSeconds, 0, 604800)
+          && isPercent(data.startPercent)
+          && isPercent(data.endPercent);
+      }
+
+      function isValidBadge(badgeId) {
+        let data = incoming();
+        return data.keys().hasOnly(['badgeId', 'unlockedAt', 'updatedAt',
+            'syncedAt'])
+          && data.keys().hasAll(['badgeId', 'unlockedAt', 'updatedAt',
+            'syncedAt'])
+          && data.badgeId == badgeId
+          && isString(badgeId, 1, 60)
+          && data.unlockedAt is timestamp;
+      }
+
+      // Generic settings map; features add their own keys. Each key's edit
+      // time is in stamps, so the merge is per key (no updatedAt ordering).
+      function isValidSettings() {
+        let data = incoming();
+        return data.keys().hasOnly(['values', 'stamps', 'updatedAt', 'syncedAt'])
+          && data.keys().hasAll(['values', 'stamps', 'updatedAt', 'syncedAt'])
+          && data.values is map
+          && data.values.size() <= 200
+          && data.stamps is map
+          && data.stamps.size() <= 200
+          && isSyncTime(data.updatedAt)
+          && data.syncedAt == request.time;
+      }
+
+      match /library/{bookId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isOwner(ownerUid)
+          && isValidLibraryEntry()
+          && isSyncWrite();
+        allow delete: if isOwner(ownerUid);
+      }
+
+      match /readingState/{bookId} {
+        allow read: if isOwner(ownerUid);
+        allow create, update: if isOwner(ownerUid)
+          && isValidReadingState()
+          && isSyncWrite();
+        allow delete: if isOwner(ownerUid);
+      }
+
+      match /highlights/{highlightId} {
+        allow read: if isOwner(ownerUid);
+        allow create, update: if isOwner(ownerUid)
+          && isString(highlightId, 1, 64)
+          && isValidHighlight()
+          && isSyncWrite();
+        allow delete: if isOwner(ownerUid);
+      }
+
+      match /bookmarks/{bookmarkId} {
+        allow read: if isOwner(ownerUid);
+        allow create, update: if isOwner(ownerUid)
+          && isString(bookmarkId, 1, 64)
+          && isValidBookmark()
+          && isSyncWrite();
+        allow delete: if isOwner(ownerUid);
+      }
+
+      match /sessions/{sessionId} {
+        allow read: if isOwner(ownerUid);
+        allow create, update: if isOwner(ownerUid)
+          && isString(sessionId, 1, 64)
+          && isValidSession()
+          && isSyncWrite();
+        allow delete: if isOwner(ownerUid);
+      }
+
+      match /badges/{badgeId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isOwner(ownerUid)
+          && isValidBadge(badgeId)
+          && isSyncWrite();
+        allow delete: if isOwner(ownerUid);
+      }
+
+      match /private/{docId} {
+        allow read: if isOwner(ownerUid);
+        allow create, update: if isOwner(ownerUid)
+          && docId == 'settings'
+          && isValidSettings();
+        allow delete: if isOwner(ownerUid);
+      }
+      // END personal library sync
+      // ===========================================================
     }
 
     // -------------------------------------------------------------

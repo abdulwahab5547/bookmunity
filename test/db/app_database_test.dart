@@ -1,4 +1,5 @@
 import 'package:bookmunity/core/db/app_database.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,8 +12,8 @@ void main() {
     bookId = await database.addBook(
       BooksCompanion.insert(
         title: 'Book',
-        filePath: '/tmp/does-not-exist.epub',
-        fileHash: 'hash',
+        filePath: const Value('/tmp/does-not-exist.epub'),
+        fileHash: const Value('hash'),
         addedAt: DateTime(2026),
       ),
     );
@@ -77,37 +78,47 @@ void main() {
     expect((await book()).locationsJson, '["epubcfi(/6/2)"]');
   });
 
-  test('deleting a book removes highlights and bookmarks but keeps sessions', () async {
-    await database.addHighlight(
-      HighlightsCompanion.insert(
-        bookId: bookId,
-        cfiRange: 'r',
-        selectedText: 't',
-        createdAt: DateTime(2026),
-        updatedAt: DateTime(2026),
-      ),
-    );
-    await database.addBookmark(
-      BookmarksCompanion.insert(bookId: bookId, cfi: 'b', createdAt: DateTime(2026)),
-    );
-    await database.addReadingSession(
-      ReadingSessionsCompanion.insert(
-        bookId: bookId,
-        startedAt: DateTime(2026),
-        endedAt: DateTime(2026),
-        durationSeconds: 120,
-      ),
-    );
-    await database.deleteBook(await book());
-    expect(await database.getBooks(), isEmpty);
-    expect(await database.countHighlights(), 0);
-    expect(await database.watchBookmarks(bookId).first, isEmpty);
-    expect(await database.getReadingSessions(), hasLength(1));
-  });
+  test(
+    'deleting a book removes highlights and bookmarks but keeps sessions',
+    () async {
+      await database.addHighlight(
+        HighlightsCompanion.insert(
+          bookId: bookId,
+          cfiRange: 'r',
+          selectedText: 't',
+          createdAt: DateTime(2026),
+          updatedAt: DateTime(2026),
+        ),
+      );
+      await database.addBookmark(
+        BookmarksCompanion.insert(
+          bookId: bookId,
+          cfi: 'b',
+          createdAt: DateTime(2026),
+        ),
+      );
+      await database.addReadingSession(
+        ReadingSessionsCompanion.insert(
+          bookId: bookId,
+          startedAt: DateTime(2026),
+          endedAt: DateTime(2026),
+          durationSeconds: 120,
+        ),
+      );
+      await database.deleteBook(await book());
+      expect(await database.getBooks(), isEmpty);
+      expect(await database.countHighlights(), 0);
+      expect(await database.watchBookmarks(bookId).first, isEmpty);
+      expect(await database.getReadingSessions(), hasLength(1));
+    },
+  );
 
   test('badge unlocks are idempotent and keep the first date', () async {
     await database.unlockBadges(['first_session'], DateTime(2026, 1, 1));
-    await database.unlockBadges(['first_session', 'finisher'], DateTime(2026, 2, 1));
+    await database.unlockBadges([
+      'first_session',
+      'finisher',
+    ], DateTime(2026, 2, 1));
     final unlocks = {
       for (final unlock in await database.getBadgeUnlocks())
         unlock.badgeId: unlock.unlockedAt,
@@ -141,5 +152,4 @@ void main() {
     await database.updateHighlightNote(id, '   ');
     expect((await database.getHighlights(bookId)).single.note, isNull);
   });
-
 }

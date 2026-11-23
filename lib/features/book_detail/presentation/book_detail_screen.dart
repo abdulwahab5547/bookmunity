@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../core/db/app_database.dart';
+import '../../../core/import/epub_import_service.dart';
 import '../../../design/book_cover.dart';
 import '../../../design/brutal_theme.dart';
 import '../../../design/brutal_widgets.dart';
@@ -43,9 +45,13 @@ class BookDetailScreen extends ConsumerWidget {
               'delete' => _delete(context, ref, current),
               _ => null,
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'refresh', child: Text('Refresh metadata')),
-              PopupMenuItem(value: 'delete', child: Text('Delete book')),
+            itemBuilder: (_) => [
+              if (current.filePath != null)
+                const PopupMenuItem(
+                  value: 'refresh',
+                  child: Text('Refresh metadata'),
+                ),
+              const PopupMenuItem(value: 'delete', child: Text('Delete book')),
             ],
           ),
         ],
@@ -55,31 +61,36 @@ class BookDetailScreen extends ConsumerWidget {
         children: [
           _Header(book: current),
           const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: BrutalPressable(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ReaderScreen(book: current)),
-              ),
-              backgroundColor: BrutalColors.blue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.menu_book_outlined),
-                  const SizedBox(width: 8),
-                  Text(
-                    current.progressPercent > 0 && !current.isFinished
-                        ? 'Continue reading'
-                        : current.isFinished
-                        ? 'Read again'
-                        : 'Start reading',
+          if (current.filePath == null)
+            _MissingFileCard(book: current)
+          else
+            SizedBox(
+              width: double.infinity,
+              child: BrutalPressable(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReaderScreen(book: current),
                   ),
-                ],
+                ),
+                backgroundColor: BrutalColors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.menu_book_outlined),
+                    const SizedBox(width: 8),
+                    Text(
+                      current.progressPercent > 0 && !current.isFinished
+                          ? 'Continue reading'
+                          : current.isFinished
+                          ? 'Read again'
+                          : 'Start reading',
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           const SizedBox(height: 20),
           const SectionLabel('Shelf'),
           SegmentedButton<String>(
@@ -181,7 +192,8 @@ class BookDetailScreen extends ConsumerWidget {
         title: const Text('Delete this book?'),
         content: Text(
           '“${current.title}” and its highlights, notes and bookmarks will be '
-          'removed from this device. Your badges and reading history stay.',
+          'removed from your library on all your devices. Your badges and '
+          'reading history stay.',
         ),
         actions: [
           TextButton(
@@ -264,6 +276,171 @@ class _InfoRow extends StatelessWidget {
             child: Text(label, style: theme.textTheme.labelMedium),
           ),
           Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Small label for books whose EPUB is not on this device (restored from
+/// the cloud, or removed). Used on library tiles and the book screen.
+class NotOnDeviceTag extends StatelessWidget {
+  const NotOnDeviceTag({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BrutalTokens.smallBorderRadius,
+        border: Border.all(
+          color: theme.colorScheme.outline,
+          width: BrutalTokens.borderWidth,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.cloud_off_outlined,
+            size: 13,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              'Not on this device',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown instead of "Start reading" when the EPUB is missing. The book's
+/// progress, highlights and notes are kept and apply once the file is back.
+class _MissingFileCard extends ConsumerStatefulWidget {
+  const _MissingFileCard({required this.book});
+
+  final Book book;
+
+  @override
+  ConsumerState<_MissingFileCard> createState() => _MissingFileCardState();
+}
+
+class _MissingFileCardState extends ConsumerState<_MissingFileCard> {
+  bool busy = false;
+
+  Future<void> _run(Future<String?> Function() action) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => busy = true);
+    try {
+      final message = await action();
+      if (message != null) {
+        messenger.showSnackBar(SnackBar(content: Text(message)));
+      }
+    } on FormatException catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('That did not work: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<String?> _download() async {
+    final url = widget.book.sourceUrl!;
+    final response = await http
+        .get(Uri.parse(url))
+        .timeout(const Duration(minutes: 2));
+    if (response.statusCode != 200) {
+      return 'Download failed (HTTP ${response.statusCode}). '
+          'Try importing the file instead.';
+    }
+    final service = await ref.read(importServiceProvider.future);
+    final result = await service.reattachBytes(
+      widget.book,
+      response.bodyBytes,
+      filename: Uri.parse(url).pathSegments.lastOrNull,
+      sourceUrl: url,
+    );
+    return _resultMessage(result);
+  }
+
+  Future<String?> _import() async {
+    final service = await ref.read(importServiceProvider.future);
+    final result = await service.pickAndReattach(widget.book);
+    return result == null ? null : _resultMessage(result);
+  }
+
+  String _resultMessage(ImportResult result) => result.duplicate
+      ? 'That file is already in your library as “${result.title}”.'
+      : 'Ready to read. Your progress and highlights are back.';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final canDownload = widget.book.sourceUrl != null;
+    final primary = BrutalPressable(
+      onPressed: busy ? null : () => _run(canDownload ? _download : _import),
+      backgroundColor: BrutalColors.blue,
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (busy)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            Icon(
+              canDownload ? Icons.cloud_download_outlined : Icons.upload_file,
+            ),
+          const SizedBox(width: 8),
+          Text(
+            busy
+                ? (canDownload ? 'Downloading…' : 'Importing…')
+                : (canDownload ? 'Download again' : 'Import file'),
+          ),
+        ],
+      ),
+    );
+    return BrutalCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const NotOnDeviceTag(),
+          const SizedBox(height: 10),
+          Text(
+            canDownload
+                ? 'Your progress, highlights and notes are saved. Download '
+                      'the book again to keep reading.'
+                : 'Your progress, highlights and notes are saved. Import '
+                      'your EPUB of this book to keep reading.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 14),
+          SizedBox(width: double.infinity, child: primary),
+          if (canDownload) ...[
+            const SizedBox(height: 4),
+            Center(
+              child: TextButton(
+                onPressed: busy ? null : () => _run(_import),
+                child: const Text('Import a file instead'),
+              ),
+            ),
+          ],
         ],
       ),
     );
