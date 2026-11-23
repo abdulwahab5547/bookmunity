@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/home_shell.dart';
 import '../controllers/auth_controller.dart';
+import '../core/sync/sync_providers.dart';
 import '../design/brand_logo.dart';
 import '../features/social/data/social_models.dart';
 import '../features/social/data/social_providers.dart';
@@ -32,6 +33,8 @@ class _ProfileGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Keep the library syncing with the cloud while signed in.
+    ref.watch(syncEngineProvider);
     if (ref.watch(signupInProgressProvider)) {
       return const BrandLoading(message: 'Setting up your profile…');
     }
